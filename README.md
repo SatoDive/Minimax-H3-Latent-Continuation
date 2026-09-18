@@ -5,6 +5,8 @@ An enhanced continuation & latent-stitching extension for **ComfyUI** and **Mini
 This suite enables **long, seamless multi-shot video continuations** with **100% visual context and environment consistency**—completely eliminating generation-to-generation quality degradation!
 
 ---
+Tutorial :
+[![Watch the tutorial](https://img.youtube.com/vi/KkugNjrpXAc/maxresdefault.jpg)](https://www.youtube.com/watch?v=KkugNjrpXAc)
 
 ## 💡 The Problem & The Solution
 
