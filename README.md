@@ -43,7 +43,7 @@ Built upon the great foundation of `MiniMaxH3-Easy`, this modified pack adds:
 
 2. Clone this repository:
 
-git clone https://github.com/Satodive/ComfyUI-MiniMaxH3-Seamless.git
+git clone https://github.com/SatoDive/Minimax-H3-Latent-Continuation.git
 
 3. Restart ComfyUI.
 
