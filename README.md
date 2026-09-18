@@ -1,4 +1,4 @@
-# ComfyUI-MiniMaxH3-Seamless 🎬✨
+# Comfyui-Minimax-H3-Latent-Continuation 🎬✨
 
 An enhanced continuation & latent-stitching extension for **ComfyUI** and **MiniMax-H3**, heavily modified from [nkxx188/ComfyUI-MiniMaxH3-Easy](https://github.com/nkxx188/ComfyUI-MiniMaxH3-Easy).
 
