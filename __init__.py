@@ -1,0 +1,88 @@
+from .nodes import (
+    MiniMaxH3Easy,
+    MiniMaxH3EasyContextSegments,
+    MiniMaxH3EasyAspectRatio,
+    MiniMaxH3EasyLoader,
+    MiniMaxH3EasyMediaLoader,
+    MiniMaxH3EasyMediaBridge,
+    MiniMaxH3EasyMediaSplitter,
+    MiniMaxH3EasyModelAdapter,
+    MiniMaxH3EasyOutput,
+    MiniMaxH3EasySecondPassConditioning,
+    MiniMaxH3EasySegmentDecode,
+    MiniMaxH3EasySegmentRefine,
+    MiniMaxH3EasySegmentRender,
+    MiniMaxH3EasySegmentSampleSetup,
+    MiniMaxH3EasySegmentStep,
+    MiniMaxH3EasySegmentCollect,
+    MiniMaxH3EasySelectedVideoContext,
+    MiniMaxH3EasyMatchInput,
+    MiniMaxH3EasyRestoreCrop,
+    MiniMaxH3EasyProgressiveUpscale,
+)
+from .h3_latent_upscaler import MiniMaxH3EasyLatentUpscaler3D
+from .stitch_continuation import MiniMaxH3EasyStitchContinuation
+from .latent_relay import MiniMaxH3EasySaveLatent, MiniMaxH3EasyLoadLatent
+from .video_utils.video_utils import VideoTailSlicer, ImageBatchCount
+
+NODE_CLASS_MAPPINGS = {
+    "MiniMaxH3EasySaveLatent_SatoDive": MiniMaxH3EasySaveLatent,
+    "MiniMaxH3EasyLoadLatent_SatoDive": MiniMaxH3EasyLoadLatent,
+    "MiniMaxH3EasyStitchContinuation_SatoDive": MiniMaxH3EasyStitchContinuation,
+    "MiniMaxH3EasyLoader_SatoDive": MiniMaxH3EasyLoader,
+    "MiniMaxH3EasyModelAdapter_SatoDive": MiniMaxH3EasyModelAdapter,
+    "MiniMaxH3EasyMediaLoader_SatoDive": MiniMaxH3EasyMediaLoader,
+    "MiniMaxH3EasyMediaBridge_SatoDive": MiniMaxH3EasyMediaBridge,
+    "MiniMaxH3EasyMediaSplitter_SatoDive": MiniMaxH3EasyMediaSplitter,
+    "MiniMaxH3Easy_SatoDive": MiniMaxH3Easy,
+    "MiniMaxH3EasyContextSegments_SatoDive": MiniMaxH3EasyContextSegments,
+    "MiniMaxH3EasyOutput_SatoDive": MiniMaxH3EasyOutput,
+    "MiniMaxH3EasySegmentRender_SatoDive": MiniMaxH3EasySegmentRender,
+    "MiniMaxH3EasySegmentSampleSetup_SatoDive": MiniMaxH3EasySegmentSampleSetup,
+    "MiniMaxH3EasySegmentStep_SatoDive": MiniMaxH3EasySegmentStep,
+    "MiniMaxH3EasySegmentCollect_SatoDive": MiniMaxH3EasySegmentCollect,
+    "MiniMaxH3EasySegmentRefine_SatoDive": MiniMaxH3EasySegmentRefine,
+    "MiniMaxH3EasySegmentDecode_SatoDive": MiniMaxH3EasySegmentDecode,
+    "MiniMaxH3EasySelectedVideoContext_SatoDive": MiniMaxH3EasySelectedVideoContext,
+    "MiniMaxH3EasyAspectRatio_SatoDive": MiniMaxH3EasyAspectRatio,
+    "MiniMaxH3EasyMatchInput_SatoDive": MiniMaxH3EasyMatchInput,
+    "MiniMaxH3EasyRestoreCrop_SatoDive": MiniMaxH3EasyRestoreCrop,
+    "MiniMaxH3EasySecondPassConditioning_SatoDive": MiniMaxH3EasySecondPassConditioning,
+    "MiniMaxH3EasyProgressiveUpscale_SatoDive": MiniMaxH3EasyProgressiveUpscale,
+    "MiniMaxH3EasyLatentUpscaler3D_SatoDive": MiniMaxH3EasyLatentUpscaler3D,
+    "MiniMaxH3EasyVideoTailSlicer_SatoDive": VideoTailSlicer,
+    "MiniMaxH3EasyImageBatchCount_SatoDive": ImageBatchCount,
+}
+
+NODE_DISPLAY_NAME_MAPPINGS = {
+    "MiniMaxH3EasySaveLatent_SatoDive": "MiniMax H3 Save Latent (lossless chain) - SatoDive",
+    "MiniMaxH3EasyLoadLatent_SatoDive": "MiniMax H3 Load Latent (lossless chain) - SatoDive",
+    "MiniMaxH3EasyStitchContinuation_SatoDive": "MiniMax H3 Stitch Continuation - SatoDive",
+    "MiniMaxH3EasyLoader_SatoDive": "MiniMax H3 Easy Loader - SatoDive",
+    "MiniMaxH3EasyModelAdapter_SatoDive": "MiniMax H3 Easy Model Adapter - SatoDive",
+    "MiniMaxH3EasyMediaLoader_SatoDive": "MiniMax H3 Easy Media Loader - SatoDive",
+    "MiniMaxH3EasyMediaBridge_SatoDive": "MiniMax H3 Easy Media Bridge - SatoDive",
+    "MiniMaxH3EasyMediaSplitter_SatoDive": "MiniMax H3 Easy Media Splitter - SatoDive",
+    "MiniMaxH3Easy_SatoDive": "MiniMax H3 Easy - SatoDive",
+    "MiniMaxH3EasyContextSegments_SatoDive": "MiniMax H3 Easy Context Segments - SatoDive",
+    "MiniMaxH3EasyOutput_SatoDive": "MiniMax H3 Easy Output - SatoDive",
+    "MiniMaxH3EasySegmentRender_SatoDive": "MiniMax H3 Easy Segment Sample - SatoDive",
+    "MiniMaxH3EasySegmentSampleSetup_SatoDive": "MiniMax H3 Easy Sample Setup - SatoDive",
+    "MiniMaxH3EasySegmentStep_SatoDive": "MiniMax H3 Easy Segment Step - SatoDive",
+    "MiniMaxH3EasySegmentCollect_SatoDive": "MiniMax H3 Easy Segment Collect - SatoDive",
+    "MiniMaxH3EasySegmentRefine_SatoDive": "MiniMax H3 Easy Segment Refine - SatoDive",
+    "MiniMaxH3EasySegmentDecode_SatoDive": "MiniMax H3 Easy Segment Decode - SatoDive",
+    "MiniMaxH3EasySelectedVideoContext_SatoDive": "MiniMax H3 Easy Selected Video Context - SatoDive",
+    "MiniMaxH3EasyAspectRatio_SatoDive": "MiniMax H3 Easy Aspect Ratio - SatoDive",
+    "MiniMaxH3EasyMatchInput_SatoDive": "MiniMax H3 Easy Match Input - SatoDive",
+    "MiniMaxH3EasyRestoreCrop_SatoDive": "MiniMax H3 Easy Restore Crop - SatoDive",
+    "MiniMaxH3EasySecondPassConditioning_SatoDive": "MiniMax H3 Easy Second Pass Conditioning - SatoDive",
+    "MiniMaxH3EasyProgressiveUpscale_SatoDive": "MiniMax H3 Easy Progressive Upscale - SatoDive",
+    "MiniMaxH3EasyLatentUpscaler3D_SatoDive": "MiniMax H3 Easy 3D Latent Upscale (Built-in) - SatoDive",
+    "MiniMaxH3EasyVideoTailSlicer_SatoDive": "MiniMax H3 Easy Video Tail Slicer - SatoDive",
+    "MiniMaxH3EasyImageBatchCount_SatoDive": "MiniMax H3 Easy Image Batch Count - SatoDive",
+}
+
+WEB_DIRECTORY = "./web"
+
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
