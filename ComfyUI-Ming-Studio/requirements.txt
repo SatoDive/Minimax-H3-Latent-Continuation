@@ -1,0 +1,3 @@
+# No required extra dependencies (numpy, torch and Pillow come with ComfyUI).
+# Optional, for real website screenshots in "Ming Website -> Design":
+#   pip install playwright && playwright install chromium

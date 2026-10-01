@@ -1,0 +1,1020 @@
+{
+ "id": "a670fd2b-51db-5f2a-9b8f-be49bfc45b1c",
+ "revision": 0,
+ "last_node_id": 17,
+ "last_link_id": 20,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "UNETLoader",
+   "pos": [
+    40,
+    80
+   ],
+   "size": [
+    360,
+    82
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      11
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader",
+    "models": [
+     {
+      "name": "ming_image_0.1_design_int8_convrot.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Ming-Image/resolve/main/diffusion_models/ming_image_0.1_design_int8_convrot.safetensors",
+      "directory": "diffusion_models"
+     }
+    ]
+   },
+   "widgets_values": [
+    "ming_image_0.1_design_int8_convrot.safetensors",
+    "default"
+   ]
+  },
+  {
+   "id": 2,
+   "type": "CLIPLoader",
+   "pos": [
+    40,
+    200
+   ],
+   "size": [
+    360,
+    106
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      8
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader",
+    "models": [
+     {
+      "name": "ming_image_0.1_ling_mini_2.0_int8_convrot.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Ming-Image/resolve/main/text_encoders/ming_image_0.1_ling_mini_2.0_int8_convrot.safetensors",
+      "directory": "text_encoders"
+     }
+    ]
+   },
+   "widgets_values": [
+    "ming_image_0.1_ling_mini_2.0_int8_convrot.safetensors",
+    "qwen_image",
+    "default"
+   ]
+  },
+  {
+   "id": 3,
+   "type": "VAELoader",
+   "pos": [
+    40,
+    350
+   ],
+   "size": [
+    360,
+    58
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "VAE",
+     "type": "VAE",
+     "links": [
+      19
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader",
+    "models": [
+     {
+      "name": "ming_image_vae_bf16.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Ming-Image/resolve/main/vae/ming_image_vae_bf16.safetensors",
+      "directory": "vae"
+     }
+    ]
+   },
+   "widgets_values": [
+    "ming_image_vae_bf16.safetensors"
+   ]
+  },
+  {
+   "id": 4,
+   "type": "MarkdownNote",
+   "pos": [
+    40,
+    520
+   ],
+   "size": [
+    400,
+    480
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "## Models (put them in ComfyUI/models/...)\n\n**diffusion_models**\n- [ming_image_0.1_design_int8_convrot.safetensors](https://huggingface.co/Comfy-Org/Ming-Image/resolve/main/diffusion_models/ming_image_0.1_design_int8_convrot.safetensors) (Design: text-to-design + editing)\n- [ming_image_0.1_design_layer_int8_convrot.safetensors](https://huggingface.co/Comfy-Org/Ming-Image/resolve/main/diffusion_models/ming_image_0.1_design_layer_int8_convrot.safetensors) (Design-Layer: image → RGBA layers)\n- bf16 versions also exist in the same repo for GPUs with more VRAM\n\n**text_encoders**\n- [ming_image_0.1_ling_mini_2.0_int8_convrot.safetensors](https://huggingface.co/Comfy-Org/Ming-Image/resolve/main/text_encoders/ming_image_0.1_ling_mini_2.0_int8_convrot.safetensors)\n\n**vae**\n- [ming_image_vae_bf16.safetensors](https://huggingface.co/Comfy-Org/Ming-Image/resolve/main/vae/ming_image_vae_bf16.safetensors)\n\nRepo: https://huggingface.co/Comfy-Org/Ming-Image\n\n**Prompt enhancer (optional, big):**\n- [qwen3.8_27b_w4a8.safetensors](https://huggingface.co/Comfy-Org/Qwen3.8-27B/resolve/main/text_encoders/qwen3.8_27b_w4a8.safetensors) → text_encoders"
+   ],
+   "color": "#432",
+   "bgcolor": "#2a2318"
+  },
+  {
+   "id": 5,
+   "type": "MingCanvasSize",
+   "pos": [
+    490,
+    80
+   ],
+   "size": [
+    320,
+    180
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "latent",
+     "type": "LATENT",
+     "links": [
+      17
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "links": [
+      1,
+      12
+     ],
+     "slot_index": 1
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "links": [
+      2,
+      13
+     ],
+     "slot_index": 2
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MingCanvasSize"
+   },
+   "widgets_values": [
+    "2:3 Poster",
+    2048,
+    1440,
+    2560,
+    1
+   ]
+  },
+  {
+   "id": 6,
+   "type": "MingEnhancerPrompts",
+   "pos": [
+    840,
+    80
+   ],
+   "size": [
+    500,
+    260
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "width",
+     "type": "INT",
+     "widget": {
+      "name": "width"
+     },
+     "link": 1
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "widget": {
+      "name": "height"
+     },
+     "link": 2
+    }
+   ],
+   "outputs": [
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "links": [
+      5
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "system_prompt",
+     "type": "STRING",
+     "links": [
+      4
+     ],
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MingEnhancerPrompts"
+   },
+   "widgets_values": [
+    "text-to-image rewriter",
+    "A poster for a summer jazz festival in Lisbon, 12–14 July 2026, line-up: Nala Reyes, The Blue Tram Quartet, Ines Duarte. Tagline \"Music by the river\".",
+    2048,
+    2048
+   ]
+  },
+  {
+   "id": 7,
+   "type": "CLIPLoader",
+   "pos": [
+    490,
+    300
+   ],
+   "size": [
+    320,
+    106
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [
+    {
+     "name": "CLIP",
+     "type": "CLIP",
+     "links": [
+      3
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader",
+    "models": [
+     {
+      "name": "qwen3.8_27b_w4a8.safetensors",
+      "url": "https://huggingface.co/Comfy-Org/Qwen3.8-27B/resolve/main/text_encoders/qwen3.8_27b_w4a8.safetensors",
+      "directory": "text_encoders"
+     }
+    ]
+   },
+   "widgets_values": [
+    "qwen3.8_27b_w4a8.safetensors",
+    "stable_diffusion",
+    "default"
+   ],
+   "title": "LLM for prompt enhancement"
+  },
+  {
+   "id": 8,
+   "type": "TextGenerate",
+   "pos": [
+    840,
+    380
+   ],
+   "size": [
+    500,
+    330
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 3
+    },
+    {
+     "name": "image",
+     "type": "IMAGE",
+     "link": null,
+     "shape": 7
+    },
+    {
+     "name": "video",
+     "type": "IMAGE",
+     "link": null,
+     "shape": 7
+    },
+    {
+     "name": "audio",
+     "type": "AUDIO",
+     "link": null,
+     "shape": 7
+    },
+    {
+     "name": "system_prompt",
+     "type": "STRING",
+     "link": 4,
+     "shape": 7
+    },
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "widget": {
+      "name": "prompt"
+     },
+     "link": 5
+    }
+   ],
+   "outputs": [
+    {
+     "name": "generated_text",
+     "type": "STRING",
+     "links": [
+      6
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "thinking",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "TextGenerate"
+   },
+   "widgets_values": [
+    "",
+    4096,
+    "on",
+    0.7,
+    64,
+    0.95,
+    0.05,
+    1.05,
+    0,
+    0,
+    false,
+    true,
+    "auto"
+   ]
+  },
+  {
+   "id": 9,
+   "type": "MingPromptCleanup",
+   "pos": [
+    490,
+    460
+   ],
+   "size": [
+    320,
+    100
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "text",
+     "type": "STRING",
+     "link": 6
+    }
+   ],
+   "outputs": [
+    {
+     "name": "prompt",
+     "type": "STRING",
+     "links": [
+      7,
+      9
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "num_layers",
+     "type": "INT",
+     "links": null,
+     "slot_index": 1
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MingPromptCleanup"
+   },
+   "widgets_values": [
+    false
+   ]
+  },
+  {
+   "id": 10,
+   "type": "PreviewAny",
+   "pos": [
+    840,
+    750
+   ],
+   "size": [
+    500,
+    300
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "source",
+     "type": "*",
+     "link": 7
+    }
+   ],
+   "outputs": [
+    {
+     "name": "STRING",
+     "type": "STRING",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "PreviewAny"
+   },
+   "widgets_values": [],
+   "title": "Enhanced Ming caption"
+  },
+  {
+   "id": 11,
+   "type": "MarkdownNote",
+   "pos": [
+    490,
+    600
+   ],
+   "size": [
+    320,
+    120
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "Bypass **Generate Text** (Ctrl+B) to skip the LLM: the raw request then flows straight through the cleanup node."
+   ],
+   "color": "#432",
+   "bgcolor": "#2a2318"
+  },
+  {
+   "id": 12,
+   "type": "CLIPTextEncode",
+   "pos": [
+    1410,
+    80
+   ],
+   "size": [
+    340,
+    100
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "clip",
+     "type": "CLIP",
+     "link": 8
+    },
+    {
+     "name": "text",
+     "type": "STRING",
+     "widget": {
+      "name": "text"
+     },
+     "link": 9
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      10,
+      15
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPTextEncode"
+   },
+   "widgets_values": [
+    ""
+   ]
+  },
+  {
+   "id": 13,
+   "type": "ConditioningZeroOut",
+   "pos": [
+    1410,
+    220
+   ],
+   "size": [
+    340,
+    30
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "conditioning",
+     "type": "CONDITIONING",
+     "link": 10
+    }
+   ],
+   "outputs": [
+    {
+     "name": "CONDITIONING",
+     "type": "CONDITIONING",
+     "links": [
+      16
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ConditioningZeroOut"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 14,
+   "type": "ModelSamplingFlux",
+   "pos": [
+    1410,
+    300
+   ],
+   "size": [
+    300,
+    130
+   ],
+   "flags": {},
+   "order": 14,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 11
+    },
+    {
+     "name": "width",
+     "type": "INT",
+     "widget": {
+      "name": "width"
+     },
+     "link": 12
+    },
+    {
+     "name": "height",
+     "type": "INT",
+     "widget": {
+      "name": "height"
+     },
+     "link": 13
+    }
+   ],
+   "outputs": [
+    {
+     "name": "MODEL",
+     "type": "MODEL",
+     "links": [
+      14
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "ModelSamplingFlux"
+   },
+   "widgets_values": [
+    1.15,
+    0.5,
+    1024,
+    1024
+   ]
+  },
+  {
+   "id": 15,
+   "type": "KSampler",
+   "pos": [
+    1410,
+    470
+   ],
+   "size": [
+    300,
+    262
+   ],
+   "flags": {},
+   "order": 15,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "model",
+     "type": "MODEL",
+     "link": 14
+    },
+    {
+     "name": "positive",
+     "type": "CONDITIONING",
+     "link": 15
+    },
+    {
+     "name": "negative",
+     "type": "CONDITIONING",
+     "link": 16
+    },
+    {
+     "name": "latent_image",
+     "type": "LATENT",
+     "link": 17
+    }
+   ],
+   "outputs": [
+    {
+     "name": "LATENT",
+     "type": "LATENT",
+     "links": [
+      18
+     ],
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "KSampler"
+   },
+   "widgets_values": [
+    42,
+    "randomize",
+    12,
+    1.0,
+    "euler",
+    "simple",
+    1.0
+   ]
+  },
+  {
+   "id": 16,
+   "type": "MingDecodeLayers",
+   "pos": [
+    1810,
+    80
+   ],
+   "size": [
+    300,
+    100
+   ],
+   "flags": {},
+   "order": 16,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "samples",
+     "type": "LATENT",
+     "link": 18
+    },
+    {
+     "name": "vae",
+     "type": "VAE",
+     "link": 19
+    }
+   ],
+   "outputs": [
+    {
+     "name": "composite",
+     "type": "IMAGE",
+     "links": [
+      20
+     ],
+     "slot_index": 0
+    },
+    {
+     "name": "layers",
+     "type": "IMAGE",
+     "links": null,
+     "slot_index": 1
+    },
+    {
+     "name": "layer_masks",
+     "type": "MASK",
+     "links": null,
+     "slot_index": 2
+    },
+    {
+     "name": "count",
+     "type": "INT",
+     "links": null,
+     "slot_index": 3
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "MingDecodeLayers"
+   },
+   "widgets_values": []
+  },
+  {
+   "id": 17,
+   "type": "SaveImage",
+   "pos": [
+    1810,
+    220
+   ],
+   "size": [
+    560,
+    830
+   ],
+   "flags": {},
+   "order": 17,
+   "mode": 0,
+   "inputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "link": 20
+    }
+   ],
+   "outputs": [
+    {
+     "name": "images",
+     "type": "IMAGE",
+     "links": null,
+     "slot_index": 0
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SaveImage"
+   },
+   "widgets_values": [
+    "ming_studio/enhanced"
+   ]
+  }
+ ],
+ "links": [
+  [
+   1,
+   5,
+   1,
+   6,
+   0,
+   "INT"
+  ],
+  [
+   2,
+   5,
+   2,
+   6,
+   1,
+   "INT"
+  ],
+  [
+   3,
+   7,
+   0,
+   8,
+   0,
+   "CLIP"
+  ],
+  [
+   4,
+   6,
+   1,
+   8,
+   4,
+   "STRING"
+  ],
+  [
+   5,
+   6,
+   0,
+   8,
+   5,
+   "STRING"
+  ],
+  [
+   6,
+   8,
+   0,
+   9,
+   0,
+   "STRING"
+  ],
+  [
+   7,
+   9,
+   0,
+   10,
+   0,
+   "STRING"
+  ],
+  [
+   8,
+   2,
+   0,
+   12,
+   0,
+   "CLIP"
+  ],
+  [
+   9,
+   9,
+   0,
+   12,
+   1,
+   "STRING"
+  ],
+  [
+   10,
+   12,
+   0,
+   13,
+   0,
+   "CONDITIONING"
+  ],
+  [
+   11,
+   1,
+   0,
+   14,
+   0,
+   "MODEL"
+  ],
+  [
+   12,
+   5,
+   1,
+   14,
+   1,
+   "INT"
+  ],
+  [
+   13,
+   5,
+   2,
+   14,
+   2,
+   "INT"
+  ],
+  [
+   14,
+   14,
+   0,
+   15,
+   0,
+   "MODEL"
+  ],
+  [
+   15,
+   12,
+   0,
+   15,
+   1,
+   "CONDITIONING"
+  ],
+  [
+   16,
+   13,
+   0,
+   15,
+   2,
+   "CONDITIONING"
+  ],
+  [
+   17,
+   5,
+   0,
+   15,
+   3,
+   "LATENT"
+  ],
+  [
+   18,
+   15,
+   0,
+   16,
+   0,
+   "LATENT"
+  ],
+  [
+   19,
+   3,
+   0,
+   16,
+   1,
+   "VAE"
+  ],
+  [
+   20,
+   16,
+   0,
+   17,
+   0,
+   "IMAGE"
+  ]
+ ],
+ "groups": [
+  {
+   "id": 1,
+   "title": "① Models — native ComfyUI loaders",
+   "bounding": [
+    20,
+    30,
+    400,
+    420
+   ],
+   "color": "#3f3361",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "② Prompt enhancer (official Ming rewriter)",
+   "bounding": [
+    470,
+    30,
+    900,
+    1300
+   ],
+   "color": "#2d4a5e",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "③ Generate",
+   "bounding": [
+    1390,
+    30,
+    380,
+    1300
+   ],
+   "color": "#4a3b2b",
+   "font_size": 22,
+   "flags": {}
+  },
+  {
+   "id": 4,
+   "title": "④ Result",
+   "bounding": [
+    1790,
+    30,
+    600,
+    1300
+   ],
+   "color": "#2b4a36",
+   "font_size": 22,
+   "flags": {}
+  }
+ ],
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.5,
+   "offset": [
+    40,
+    60
+   ]
+  },
+  "frontendVersion": "1.28.0"
+ },
+ "version": 0.4
+}

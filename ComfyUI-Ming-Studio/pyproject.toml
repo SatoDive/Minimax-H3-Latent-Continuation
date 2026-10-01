@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-ming-studio"
+description = "Ming-Image 0.1 design studio for ComfyUI: text-to-design (RGBA), image-to-layers, interactive layer studio, Photoshop PSD export and website-to-design. Uses ComfyUI's native Ming loaders."
+version = "1.0.0"
+license = { file = "LICENSE" }
+dependencies = []
+
+[project.optional-dependencies]
+screenshots = ["playwright"]
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "Ming Studio"
+Icon = ""
