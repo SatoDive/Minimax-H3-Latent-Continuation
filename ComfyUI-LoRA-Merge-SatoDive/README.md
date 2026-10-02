@@ -80,3 +80,15 @@ LoRAs are matched to the model through ComfyUI's own LoRA key maps. So kohya, di
 No extra Python packages are needed. It needs a recent ComfyUI with Krea2, Qwen-Image 2.1 and Flux2 support (tested on v0.38.0, frontend 1.53.10).
 
 ![workflow](docs/workflow.jpg)
+
+## Troubleshooting: `SatoDive_ComfyUI_Doctor.bat`
+
+If ComfyUI won't start or the nodes don't show up, put `SatoDive_ComfyUI_Doctor.bat` in your ComfyUI-Easy-Install folder (or the ComfyUI folder) and double-click it. It:
+
+* finds what is blocking **port 8188** (e.g. an old ComfyUI still running in the background) and offers to close it, and checks the Windows reserved port ranges,
+* finds every copy of this pack and fixes the install: a pack one folder too deep, several copies, leftover files from older versions, an unextracted zip,
+* checks that all files are present and compile with your Python,
+* reads your last `comfyui.log` for import failures,
+* writes a report (`SatoDive_ComfyUI_Report_<date>.txt`) and opens it.
+
+It never deletes anything: everything it moves goes to `ComfyUI\_satodive_backup\<date>`.
