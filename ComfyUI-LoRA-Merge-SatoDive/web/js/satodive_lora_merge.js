@@ -7,20 +7,16 @@ import { api } from "../../../scripts/api.js";
 const T = {
   setup: "SatoDiveLoRAStudioSetup",
   slot: "SatoDiveLoRASlot",
-  slotA: "SatoDiveLoRASlotA",
-  slotB: "SatoDiveLoRASlotB",
   merge: "SatoDiveLoRAMergeStudioV2",
-  mergeOld: "SatoDiveLoRAMergeStudio",
 };
-const SLOT_TYPES = [T.slot, T.slotA, T.slotB];
-const MERGE_TYPES = [T.merge, T.mergeOld];
+const SLOT_TYPES = [T.slot];
+const MERGE_TYPES = [T.merge];
 const LETTERS = "ABCDEFGHIJ";
 const COLORS = ["#22d3ee", "#f472b6", "#facc15", "#4ade80", "#fb923c", "#60a5fa", "#e879f9", "#2dd4bf", "#f87171", "#a3e635"];
 const DARK = ["#0b3d47", "#4b1437", "#4a3d07", "#0f3d22", "#4a2508", "#10284d", "#43124a", "#0b3b36", "#4a1414", "#2c3d0a"];
 const THEME = {
   [T.setup]: { color: "#3b2f0f", bgcolor: "#17150f", acc: "#fbbf24" },
   [T.merge]: { color: "#2d1d63", bgcolor: "#141122", acc: "#a78bfa" },
-  [T.mergeOld]: { color: "#2d1d63", bgcolor: "#141122", acc: "#a78bfa" },
 };
 const EVT = "satodive:lora-changed";
 const API = "/satodive/lora_merge";
@@ -231,8 +227,6 @@ function archFor(node) {
 }
 // which merge input(s) a slot feeds: returns the first letter found
 function slotLetter(node) {
-  if (node.comfyClass === T.slotA) return "A";
-  if (node.comfyClass === T.slotB) return "B";
   const g = node.graph ?? app.graph;
   const seen = new Set();
   const walk = (n, depth) => {
@@ -246,10 +240,8 @@ function slotLetter(node) {
         if (t.type === "Reroute" && depth < 8) { const r = walk(t, depth + 1); if (r) return r; continue; }
         const inp = t.inputs?.[l.target_slot];
         if (!inp) continue;
-        let m = /lora_([A-J])$/.exec(inp.name || "");
+        const m = /lora_([A-J])$/.exec(inp.name || "");
         if (m) return m[1];
-        m = /^lora_([ab])$/.exec(inp.name || "");
-        if (m) return m[1].toUpperCase();
       }
     }
     return null;
@@ -260,12 +252,9 @@ function slotLetter(node) {
 function mergeSources(node) {
   const out = [];
   (node.inputs || []).forEach((inp, i) => {
-    let letter = null;
-    let m = /lora_([A-J])$/.exec(inp.name || "");
-    if (m) letter = m[1];
-    m = /^lora_([ab])$/.exec(inp.name || "");
-    if (m) letter = m[1].toUpperCase();
-    if (!letter) return;
+    const m = /lora_([A-J])$/.exec(inp.name || "");
+    if (!m) return;
+    const letter = m[1];
     const src = upstream(node, i);
     if (!src) return;
     if (SLOT_TYPES.includes(src.comfyClass)) out.push({ letter, node: src, name: W(src, "lora_name")?.value || "" });
@@ -676,14 +665,42 @@ async function openBrowser(node) {
 // ------------------------------------------------------------------------------------
 // Setup node
 // ------------------------------------------------------------------------------------
+// ---- live check of the native loaders feeding the Setup node (before you even run) ----
+const FAM_RX = { krea2: /krea/i, zimage: /z[-_ ]?image/i, klein: /klein/i, qwen21: /qwen[-_ ]?image[-_ ]?2[._]?1/i };
+const FAM_LABEL = { krea2: "Krea2", zimage: "Z-Image", klein: "Flux.2 Klein", qwen21: "Qwen-Image 2.1" };
+function famFromName(n) { for (const [f, rx] of Object.entries(FAM_RX)) if (rx.test(n || "")) return f; return null; }
+function liveIssues(node) {
+  const arch = W(node, "architecture")?.value;
+  const p = PRESETS?.presets?.[arch] || {};
+  const fam = p.family || "auto";
+  const out = [];
+  if (fam === "auto") return out;
+  const unet = upstream(node, "model");
+  const un = W(unet, "unet_name")?.value;
+  const uf = famFromName(un);
+  if (un && uf && uf !== fam) out.push(`Load Diffusion Model has <b>${esc(un)}</b> - that looks like a <b>${FAM_LABEL[uf]}</b> model, not ${esc(arch)}.`);
+  const clip = upstream(node, "clip");
+  const ct = W(clip, "type")?.value;
+  if (clip && ct && p.clip_type && ct !== p.clip_type) out.push(`Load CLIP type is <b>${esc(ct)}</b> - ${esc(arch)} needs type <b>${esc(p.clip_type)}</b>.`);
+  const cn = W(clip, "clip_name")?.value;
+  const cf = famFromName(cn);
+  if (cn && cf && cf !== fam) out.push(`Load CLIP has <b>${esc(cn)}</b> - that looks like a ${FAM_LABEL[cf]} text encoder.`);
+  return out;
+}
+function liveSig(node) {
+  const u = upstream(node, "model"), c = upstream(node, "clip");
+  return [W(node, "architecture")?.value, W(u, "unet_name")?.value, W(c, "clip_name")?.value, W(c, "type")?.value].join("|");
+}
+
 function renderSetupCard(node) {
   const el = node.__satoCard;
   if (!el) return;
   const arch = W(node, "architecture")?.value;
   const p = PRESETS?.presets?.[arch] || {};
   const run = node.__satoRun;
-  let status = "";
-  if (run) {
+  const issues = PRESETS ? liveIssues(node) : [];
+  let status = issues.length ? `<div class="sato-msg bad">⚠ ${issues.join("<br>⚠ ")}</div>` : "";
+  if (run && !issues.length) {
     if (run.warnings?.length) status = `<div class="sato-msg warn">⚠ ${esc(run.warnings.join(" "))}</div>`;
     else status = `<div class="sato-msg ok">✓ Model <b>${esc(run.model_class)}</b> matches · CLIP ${run.has_clip ? "✓" : "✗ (previews off)"} · VAE ${run.has_vae ? "✓" : "✗"}${run.has_reference ? " · reference image ✓" : ""}</div>`;
   }
@@ -715,7 +732,7 @@ function initSetup(node) {
   const card = h("div", "sato-card");
   card.style.setProperty("--acc", THEME[T.setup].acc);
   node.__satoCard = card;
-  addDOM(node, "arch_card", card, 158);
+  addDOM(node, "arch_card", card, () => (PRESETS && liveIssues(node).length ? 158 + 22 * liveIssues(node).length : 158));
   const aw = W(node, "architecture");
   if (aw) {
     const orig = aw.callback;
@@ -730,6 +747,11 @@ function initSetup(node) {
     };
   }
   getPresets().then(() => renderSetupCard(node));
+  node.__satoTimer = setInterval(() => {
+    if (!node.graph) return clearInterval(node.__satoTimer);
+    const sig = liveSig(node);
+    if (sig !== node.__satoSig) { node.__satoSig = sig; node.__satoRun = null; renderSetupCard(node); requestAnimationFrame(() => fitNode(node)); }
+  }, 1200);
   requestAnimationFrame(() => fitNode(node, 400));
 }
 
@@ -900,25 +922,23 @@ function initSlot(node) {
 }
 
 // ------------------------------------------------------------------------------------
-// Merge Studio (v2: N LoRAs + mixer, legacy: A/B)
+// Merge Studio (2-10 LoRAs, mixer, per-block sliders)
 // ------------------------------------------------------------------------------------
 const RMIN = -1, RMAX = 2;
 
-function isLegacy(node) { return node.comfyClass === T.mergeOld; }
-function mixWidgetName(node) { return isLegacy(node) ? "block_weights" : "mix_settings"; }
-function keyFor(node, letter) { return isLegacy(node) ? letter.toLowerCase() : letter; }
+const MIX_WIDGET = "mix_settings";
 
 function mergeState(node) {
   if (!node.__sato) {
     let mix = {};
-    try { mix = JSON.parse(W(node, mixWidgetName(node))?.value || "{}") || {}; } catch (_) {}
+    try { mix = JSON.parse(W(node, MIX_WIDGET)?.value || "{}") || {}; } catch (_) {}
     node.__sato = { mix, groups: [], sources: [], tab: null, closed: node.properties?.satoClosed || {}, report: null };
   }
   return node.__sato;
 }
-function blockVal(node, letter, g) { const st = mergeState(node); return st.mix[keyFor(node, letter)]?.[g] ?? 1; }
+function blockVal(node, letter, g) { const st = mergeState(node); return st.mix[letter]?.[g] ?? 1; }
 function setBlockVal(node, letter, g, v) {
-  const st = mergeState(node); const k = keyFor(node, letter);
+  const st = mergeState(node); const k = letter;
   st.mix[k] = st.mix[k] || {};
   if (Math.abs(v - 1) < 1e-6) delete st.mix[k][g]; else st.mix[k][g] = Math.round(v * 1000) / 1000;
 }
@@ -927,7 +947,7 @@ function saveMix(node) {
   for (const k of Object.keys(st.mix)) if (st.mix[k] && typeof st.mix[k] === "object" && !Array.isArray(st.mix[k]) && !Object.keys(st.mix[k]).length) delete st.mix[k];
   if (Array.isArray(st.mix._mute) && !st.mix._mute.length) delete st.mix._mute;
   if (Array.isArray(st.mix._solo) && !st.mix._solo.length) delete st.mix._solo;
-  const w = W(node, mixWidgetName(node));
+  const w = W(node, MIX_WIDGET);
   if (w) w.value = JSON.stringify(st.mix);
   app.graph.setDirtyCanvas(true, false);
 }
@@ -978,7 +998,6 @@ function renderMerge(node) {
   const el = node.__satoCard;
   if (!el) return;
   const st = mergeState(node);
-  const legacy = isLegacy(node);
   const help = PRESETS?.help || {};
   const scrollTop = el.querySelector(".sato-scroll")?.scrollTop || 0;
   el.innerHTML = "";
@@ -1003,7 +1022,7 @@ function renderMerge(node) {
   el.appendChild(acts);
 
   // ---- method guide
-  if (!legacy) {
+  {
     const m = W(node, "method")?.value;
     const mh = help.method_help?.[m];
     if (mh) el.appendChild(h("div", "sato-guide", `<b class="t">${esc(m)}</b>${esc(mh.what)}<div class="pick">👉 ${esc(mh.pick)}</div><div class="cost">${esc(mh.cost)}</div>`));
@@ -1015,9 +1034,9 @@ function renderMerge(node) {
   }
 
   // ---- mixer
-  el.appendChild(h("div", "sato-sec-t", legacy ? "LoRAs" : "Mixer - how much of each LoRA"));
+  el.appendChild(h("div", "sato-sec-t", "Mixer - how much of each LoRA"));
   if (!srcs.length) {
-    el.appendChild(h("div", "sato-empty", legacy ? "Connect LoRA A and B." :
+    el.appendChild(h("div", "sato-empty",
       "Connect two or more <b>LoRA Slot</b> nodes to <b>lora_A</b>, <b>lora_B</b>… - a new input appears every time you connect one."));
   }
   const mute = new Set(st.mix._mute || []), solo = new Set(st.mix._solo || []);
@@ -1031,11 +1050,7 @@ function renderMerge(node) {
     const nm = h("div", "nm", esc(civ?.user?.name || civ?.civitai?.model_name || baseName(s.name)));
     nm.title = s.name;
     row.append(lt, nm);
-    if (legacy) {
-      const wn = s.letter === "A" ? "weight_a" : "weight_b";
-      const val = h("div", "sato-val", Number(W(node, wn)?.value ?? 1).toFixed(2));
-      row.append(mkRange(c, W(node, wn)?.value ?? 1, false, (v) => { W(node, wn).value = Math.round(v * 100) / 100; val.textContent = v.toFixed(2); app.graph.setDirtyCanvas(true, false); }, 0, 2), val, h("div"), h("div"));
-    } else {
+    {
       const gain = st.mix._mix?.[s.letter] ?? 1;
       const val = h("div", "sato-val", Number(gain).toFixed(2));
       val.title = "double-click: reset to 1.00";
@@ -1201,14 +1216,14 @@ async function refreshMerge(node) {
 }
 
 function initMerge(node) {
-  hideWidget(node, mixWidgetName(node));
+  hideWidget(node, MIX_WIDGET);
   node.__satoScrollH = 120;
   const card = h("div", "sato-card");
   card.style.setProperty("--acc", THEME[node.comfyClass].acc);
   node.__satoCard = card;
   addDOM(node, "studio", card, () => node.__satoH || 420);
   const mw = W(node, "method");
-  if (mw && !isLegacy(node)) {
+  if (mw) {
     const orig = mw.callback;
     mw.callback = function (...a) { const r = orig?.apply(this, a); renderMerge(node); return r; };
   }
@@ -1292,7 +1307,7 @@ app.registerExtension({
           const byId = new Map(st.groups.map((g) => [g.id, g]));
           for (const g of msg.sato_groups) {
             if (!g || typeof g.id !== "string") continue;
-            const counts = g.by || (g.counts ? Object.fromEntries(letters.map((L, i) => [L, g.counts[i] ?? 0])) : { A: g.a, B: g.b });
+            const counts = g.by || (g.counts ? Object.fromEntries(letters.map((L, i) => [L, g.counts[i] ?? 0])) : {});
             byId.set(g.id, { ...(byId.get(g.id) || {}), ...g, counts });
           }
           st.groups = [...byId.values()];
@@ -1304,6 +1319,7 @@ app.registerExtension({
 
     const onRemoved = nodeType.prototype.onRemoved;
     nodeType.prototype.onRemoved = function () {
+      if (this.__satoTimer) clearInterval(this.__satoTimer);
       if (this.__satoListener) {
         window.removeEventListener(EVT, this.__satoListener);
         window.removeEventListener(EVT + ":arch", this.__satoListener);

@@ -1,5 +1,5 @@
 {
- "id": "5dc369d5-d07b-473d-a11b-9f9e40c9e1f6",
+ "id": "b86659fc-c6fe-4e35-8fdc-59515f3a6b1b",
  "revision": 0,
  "last_node_id": 12,
  "last_link_id": 8,
@@ -299,10 +299,10 @@
    "outputs": [],
    "properties": {},
    "widgets_values": [
-    "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `flux-2-klein-base-9b-fp8.safetensors`\n- **Load CLIP:** `qwen_3_8b_fp8mixed.safetensors` - type **flux2**\n- **Load VAE:** `full_encoder_small_decoder.safetensors`\n\n"
+    "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `flux-2-klein-base-9b-fp8.safetensors`\n- **Load CLIP:** `qwen_3_8b_fp8mixed.safetensors` - type **flux2**\n- **Load VAE:** `full_encoder_small_decoder.safetensors`\n\n\u26a0 These are the official file names - **select your own files** after opening. If a name is missing, ComfyUI may silently pick another file: the Setup card turns **red** when a file doesn't match the architecture."
    ],
    "widgets_values_named": {
-    "text": "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `flux-2-klein-base-9b-fp8.safetensors`\n- **Load CLIP:** `qwen_3_8b_fp8mixed.safetensors` - type **flux2**\n- **Load VAE:** `full_encoder_small_decoder.safetensors`\n\n"
+    "text": "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `flux-2-klein-base-9b-fp8.safetensors`\n- **Load CLIP:** `qwen_3_8b_fp8mixed.safetensors` - type **flux2**\n- **Load VAE:** `full_encoder_small_decoder.safetensors`\n\n\u26a0 These are the official file names - **select your own files** after opening. If a name is missing, ComfyUI may silently pick another file: the Setup card turns **red** when a file doesn't match the architecture."
    },
    "color": "#2a2a35",
    "bgcolor": "#1b1b24"

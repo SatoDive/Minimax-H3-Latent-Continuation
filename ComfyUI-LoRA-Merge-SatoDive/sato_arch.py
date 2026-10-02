@@ -212,13 +212,6 @@ def get_preset(name):
     return ARCH_PRESETS.get(name, ARCH_PRESETS[AUTO])
 
 
-def preset_by_key(key):
-    for name, p in ARCH_PRESETS.items():
-        if p["key"] == key:
-            return name, p
-    return AUTO, ARCH_PRESETS[AUTO]
-
-
 def public_presets():
     """JSON friendly view for the frontend."""
     out = {}
@@ -383,3 +376,93 @@ def family_of_base_model(base):
     if "qwen" in b:
         return "qwen21"
     return "other"
+
+
+# --------------------------------------------------------------------------------------
+# Compatibility checks (Setup node) - friendly errors instead of shape crashes
+# --------------------------------------------------------------------------------------
+
+FAMILY_TE_CLASSES = {
+    "krea2": ("Krea2TEModel",),
+    "zimage": ("ZImageTEModel",),
+    "klein": ("Flux2TEModel",),
+    "qwen21": ("QwenImage21TEModel",),
+}
+
+FAMILY_LABEL = {"krea2": "Krea2", "zimage": "Z-Image", "klein": "Flux.2 Klein", "qwen21": "Qwen-Image 2.1"}
+
+MODEL_CLASS_LABEL = {
+    "Krea2": "Krea2", "Lumina2": "Z-Image (or Lumina 2)", "ZImage": "Z-Image", "Flux2": "Flux.2 (Klein / Dev)",
+    "QwenImage21": "Qwen-Image 2.1", "QwenImage": "Qwen-Image (older version)", "Flux": "Flux.1",
+}
+
+
+def _class_names(obj):
+    try:
+        return [c.__name__ for c in type(obj).__mro__]
+    except Exception:
+        return []
+
+
+def loaded_file(patcher):
+    """Best effort: the file a native loader loaded (for error messages)."""
+    try:
+        init = getattr(patcher, "cached_patcher_init", None)
+        for a in (init[1] if init else ()):
+            vals = a if isinstance(a, (list, tuple)) else [a]
+            for v in vals:
+                if isinstance(v, str) and v.lower().endswith((".safetensors", ".gguf", ".ckpt", ".pt", ".sft")):
+                    return v.replace("\\", "/").split("/")[-1]
+    except Exception:
+        pass
+    return None
+
+
+def presets_for_model(model):
+    try:
+        cls = type(model.model).__name__
+    except Exception:
+        return []
+    return [n for n, p in ARCH_PRESETS.items() if cls in p.get("model_classes", [])]
+
+
+def presets_for_te(clip):
+    names = _class_names(getattr(clip, "cond_stage_model", None))
+    out = []
+    for n, p in ARCH_PRESETS.items():
+        want = FAMILY_TE_CLASSES.get(p.get("family"))
+        if want and any(c.startswith(w) for c in names for w in want):
+            out.append(n)
+    return out
+
+
+def check_compat(arch_name, model, clip):
+    """Returns a list of problems (plain-language strings). Empty = all good."""
+    preset = get_preset(arch_name)
+    fam = preset.get("family", "auto")
+    if fam == "auto":
+        return []
+    problems = []
+    ok, cls = arch_matches_model(preset, model)
+    if not ok:
+        f = loaded_file(model)
+        sug = presets_for_model(model)
+        problems.append(
+            "The diffusion model you loaded{} is a {} model, but the architecture is set to '{}'. "
+            "Pick a {} file in 'Load Diffusion Model'{}.".format(
+                " ({})".format(f) if f else "", MODEL_CLASS_LABEL.get(cls, cls), arch_name, FAMILY_LABEL.get(fam, arch_name),
+                " - or set the architecture to '{}'".format(sug[0]) if sug else ""))
+    if clip is not None:
+        want = FAMILY_TE_CLASSES.get(fam)
+        names = _class_names(getattr(clip, "cond_stage_model", None))
+        sug = presets_for_te(clip)
+        # only flag encoders that clearly belong to ANOTHER known family (never block unknown ones)
+        if want and sug and not any(c.startswith(w) for c in names for w in want):
+            f = loaded_file(getattr(clip, "patcher", None))
+            problems.append(
+                "The text encoder{} does not belong to {} (it is loaded as {}). In 'Load CLIP' pick {} with type '{}'{}.".format(
+                    " ({})".format(f) if f else "", FAMILY_LABEL.get(fam, arch_name),
+                    "a {} encoder".format(FAMILY_LABEL.get(get_preset(sug[0])["family"], sug[0])) if sug else names[0],
+                    preset.get("te_hint", "the matching file").split("  (")[0], preset.get("clip_type"),
+                    " - this one fits '{}'".format(sug[0]) if sug else ""))
+    return problems

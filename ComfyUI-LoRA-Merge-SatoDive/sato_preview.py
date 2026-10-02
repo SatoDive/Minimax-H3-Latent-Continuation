@@ -209,9 +209,18 @@ def render(pipe, model, clip, seed_offset=0):
     noise = comfy.sample.prepare_noise(latent, seed, None)
     sampler = comfy.samplers.sampler_object(pipe["sampler"])
     callback = latent_preview.prepare_callback(m, len(sigmas) - 1)
-    samples = comfy.sample.sample_custom(m, noise, cfg, sampler, sigmas, pos, neg, latent,
-                                         noise_mask=None, callback=callback,
-                                         disable_pbar=not comfy.utils.PROGRESS_BAR_ENABLED, seed=seed)
+    try:
+        samples = comfy.sample.sample_custom(m, noise, cfg, sampler, sigmas, pos, neg, latent,
+                                             noise_mask=None, callback=callback,
+                                             disable_pbar=not comfy.utils.PROGRESS_BAR_ENABLED, seed=seed)
+    except (RuntimeError, ValueError) as e:
+        msg = str(e)
+        if any(t in msg for t in ("normalized_shape", "shapes cannot be multiplied", "size of tensor", "expected input with shape",
+                                  "expects conditioning", "features")):
+            raise RuntimeError("SatoDive preview: the diffusion model, text encoder and/or VAE don't belong together "
+                               "(they are from different architectures). Check the three native loaders and the "
+                               "architecture on LoRA Studio Setup.\n\nOriginal error: " + msg) from e
+        raise
     if getattr(samples, "is_nested", False):
         samples = samples.unbind()[0]
     images = vae.decode(samples)
@@ -225,7 +234,7 @@ def render(pipe, model, clip, seed_offset=0):
 # --------------------------------------------------------------------------------------
 
 _TAG_COLORS = {
-    "BASE": (148, 163, 184), "A": (34, 211, 238), "B": (244, 114, 182), "MERGE": (167, 139, 250),
+    "BASE": (148, 163, 184), "BAD": (248, 113, 113), "A": (34, 211, 238), "B": (244, 114, 182), "MERGE": (167, 139, 250),
 }
 
 
@@ -298,6 +307,26 @@ def grid(images, max_cols=3):
 SLOT_COLORS = [(34, 211, 238), (244, 114, 182), (250, 204, 21), (74, 222, 128), (251, 146, 60),
                (96, 165, 250), (232, 121, 249), (45, 212, 191), (248, 113, 113), (163, 230, 53)]
 LETTERS = "ABCDEFGHIJ"
+
+
+def message_image(title, sub="", w=512, h=512):
+    """Dark placeholder picture with a message (used when a preview makes no sense)."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        import numpy as np
+    except Exception:
+        return blank(w, h)
+    im = Image.new("RGB", (w, h), (18, 19, 26))
+    d = ImageDraw.Draw(im)
+    try:
+        f1 = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
+        f2 = ImageFont.truetype("DejaVuSans.ttf", 15)
+    except Exception:
+        f1 = f2 = ImageFont.load_default()
+    d.text((w // 2, h // 2 - 16), title, fill=(248, 113, 113), font=f1, anchor="mm")
+    if sub:
+        d.text((w // 2, h // 2 + 16), sub, fill=(200, 200, 210), font=f2, anchor="mm")
+    return torch.from_numpy(np.array(im).astype("float32") / 255.0)[None]
 
 
 def blank(w=64, h=64):

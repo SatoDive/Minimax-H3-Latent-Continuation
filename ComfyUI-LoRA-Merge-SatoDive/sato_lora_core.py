@@ -27,18 +27,6 @@ from . import sato_arch as A
 
 log = logging.getLogger("SatoDive.LoRAMerge")
 
-MERGE_METHODS = [
-    "add (lossless concat)",
-    "svd (add + resize rank)",
-    "ties",
-    "dare_ties",
-    "dare_linear",
-    "magnitude (max |w|)",
-]
-
-TE_MODES = ["merge", "A only", "B only", "drop"]
-
-
 # --------------------------------------------------------------------------------------
 # Bundles passed between nodes (custom type SATO_LORA / SATO_PIPE)
 # --------------------------------------------------------------------------------------
@@ -255,18 +243,6 @@ def inspect_state_dict(sd, meta, arch_name=A.AUTO):
     return analyze_keys(list(sd.keys()), shapes, alphas, meta or {}, arch_name, {str(v.dtype) for v in sd.values()}, size)
 
 
-def groups_payload(group_counts_a, group_counts_b, arch_name):
-    """Ordered list of slider groups for the frontend."""
-    preset = A.get_preset(arch_name)
-    allg = set(group_counts_a) | set(group_counts_b)
-    out = []
-    for g in sorted(allg, key=lambda g: A.group_sort_key(g, preset)):
-        section, label = A.group_label(g, preset)
-        out.append({"id": g, "section": section, "label": label,
-                    "a": int(group_counts_a.get(g, 0)), "b": int(group_counts_b.get(g, 0))})
-    return out
-
-
 def groups_payload_many(counts_list, arch_name):
     """Ordered slider groups for any number of LoRAs: counts[i] = modules LoRA i has in the group."""
     preset = A.get_preset(arch_name)
@@ -277,8 +253,7 @@ def groups_payload_many(counts_list, arch_name):
     for g in sorted(allg, key=lambda g: A.group_sort_key(g, preset)):
         section, label = A.group_label(g, preset)
         counts = [int(c.get(g, 0)) for c in counts_list]
-        out.append({"id": g, "section": section, "label": label, "counts": counts,
-                    "a": counts[0] if counts else 0, "b": counts[1] if len(counts) > 1 else 0})
+        out.append({"id": g, "section": section, "label": label, "counts": counts})
     return out
 
 
@@ -450,6 +425,24 @@ def count_matches(lora_sd, key_map, shapes):
     return matched, len(patches) - matched
 
 
+def apply_lora(model, clip, lora_sd, strength_model, strength_clip):
+    """Like comfy.sd.load_lora_for_models, but quiet: one summary line instead of a warning per key."""
+    key_map = build_key_map(model, clip)
+    loaded = comfy.lora.load_lora(comfy.lora_convert.convert_lora(lora_sd), key_map, log_missing=False)
+    m2 = c2 = None
+    k = k1 = set()
+    if model is not None:
+        m2 = model.clone()
+        k = set(m2.add_patches(loaded, strength_model))
+    if clip is not None:
+        c2 = clip.clone()
+        k1 = set(c2.add_patches(loaded, strength_clip))
+    skipped = sum(1 for x in loaded if x not in k and x not in k1)
+    if skipped:
+        log.info("[SatoDive] %d LoRA weights did not apply to this model", skipped)
+    return m2 if model is not None else None, c2 if clip is not None else None
+
+
 def delta_groups(deltas, preset):
     groups = {}
     for k in deltas:
@@ -517,7 +510,7 @@ def _ties(deltas, density, drop_random=False, gen=None, use_sign=True):
 
 
 def _method_key(method):
-    """Accept the internal names, the friendly UI labels and old saved values."""
+    """Friendly UI label -> internal method name."""
     m = (method or "").lower()
     if "ties" in m and "dare" in m:
         return "dare_ties"
@@ -560,10 +553,8 @@ def merge_many(deltas_list, preset, wfuns, method, rank=0, density=0.5, seed=0, 
         if g == A.TE_GROUP:
             if te_mode == "drop":
                 ws = [0.0] * n
-            elif te_mode in ("first only", "A only"):
+            elif te_mode == "first only":
                 ws = [w if i == 0 else 0.0 for i, w in enumerate(ws)]
-            elif te_mode == "B only":
-                ws = [w if i == 1 else 0.0 for i, w in enumerate(ws)]
         terms = []  # (lora index, weight, [Delta])
         for i, d in enumerate(deltas_list):
             if ws[i] != 0 and key in d:
@@ -629,16 +620,6 @@ def merge_many(deltas_list, preset, wfuns, method, rank=0, density=0.5, seed=0, 
         "method": mkey,
     }
     return out, report
-
-
-def merge(deltas_a, deltas_b, preset, weight_a, weight_b, wfun_a, wfun_b, method,
-          rank=0, density=0.5, seed=0, te_mode="merge", merged_scale=1.0, device=None,
-          rank_a=0, rank_b=0):
-    """Two-LoRA wrapper kept for the v1 Merge Studio node and the tests."""
-    return merge_many([deltas_a, deltas_b], preset,
-                      [lambda g: weight_a * float(wfun_a(g)), lambda g: weight_b * float(wfun_b(g))],
-                      method, rank=rank, density=density, seed=seed, te_mode=te_mode,
-                      merged_scale=merged_scale, device=device, ranks=[rank_a, rank_b])
 
 
 # --------------------------------------------------------------------------------------

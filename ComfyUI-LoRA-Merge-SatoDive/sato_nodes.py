@@ -1,15 +1,17 @@
+"""Nodes: ① LoRA Studio Setup, ② LoRA Slot (one per LoRA), ③ LoRA Merge Studio (2-10 LoRAs)."""
+
 import json
 import logging
 import os
 
 import torch
 
-import comfy.model_management
-import comfy.sd
 import folder_paths
 import nodes
+from comfy_api.latest import io
 
 from . import sato_arch as A
+from . import sato_help as H
 from . import sato_lora_core as core
 from . import sato_preview as P
 
@@ -17,9 +19,13 @@ log = logging.getLogger("SatoDive.LoRAMerge")
 
 CATEGORY = "SatoDive/LoRA Merge"
 MAX_RES = nodes.MAX_RESOLUTION
+LETTERS = P.LETTERS
 
 PRECISIONS = {"fp16": torch.float16, "bf16": torch.bfloat16, "fp32": torch.float32}
 KEY_STYLES = ["comfy (diffusion_model.*)", "kohya (lora_unet_*)"]
+
+SatoLoraType = io.Custom("SATO_LORA")
+SatoPipeType = io.Custom("SATO_PIPE")
 
 
 def _preview_ui(images, prefix):
@@ -59,7 +65,7 @@ class SatoDiveStudioSetup:
                 "negative": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": "",
                                         "tooltip": "Leave empty for distilled/turbo models (CFG 1): the negative is zeroed out."}),
                 "seed": ("INT", {"default": 42, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": "fixed",
-                                 "tooltip": "Fixed by default so tweaking the merge does not re-render the A / B previews."}),
+                                 "tooltip": "Fixed by default so tweaking the merge does not re-render the LoRA slot previews."}),
                 "steps": ("INT", {"default": 8, "min": 1, "max": 200, "tooltip": "Preview sampling steps (filled in from the architecture)."}),
                 "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 30.0, "step": 0.1, "round": 0.01,
                                   "tooltip": "1.0 for turbo / distilled models. Higher only for base models."}),
@@ -93,11 +99,12 @@ class SatoDiveStudioSetup:
               isolated_previews=True):
         preset = A.get_preset(architecture)
         ok, cls_name = A.arch_matches_model(preset, model)
-        warnings = []
-        if not ok:
-            warnings.append("Model class '{}' does not match '{}' (expects {}). Check your UNET loader."
-                            .format(cls_name, architecture, "/".join(preset["model_classes"])))
-            log.warning("[SatoDive] %s", warnings[-1])
+        problems = A.check_compat(architecture, model, clip)
+        if problems:
+            # stop here with a clear message instead of a cryptic shape error deep inside sampling
+            raise RuntimeError("LoRA Studio Setup - the loaded files don't match the chosen architecture:\n\n• "
+                               + "\n• ".join(problems)
+                               + "\n\n(Choose 'Auto-detect / Other' as architecture to skip this check.)")
         pipe = core.SatoPipe(
             model=model, clip=clip, vae=vae, arch=architecture,
             group_arch=_resolve_group_arch(architecture, model),
@@ -106,49 +113,18 @@ class SatoDiveStudioSetup:
             reference_image=reference_image, match_reference_size=match_reference_size,
             isolate=isolated_previews,
         )
-        ui = {"sato_setup": [{"arch": architecture, "model_class": cls_name, "warnings": warnings,
+        ui = {"sato_setup": [{"arch": architecture, "model_class": cls_name, "warnings": [],
                               "has_clip": clip is not None, "has_vae": vae is not None,
                               "has_reference": reference_image is not None}]}
         return {"ui": ui, "result": (pipe, model, clip, vae)}
 
 
 # ======================================================================================
-# 2) LoRA Slot A / B
+# 2) LoRA Slot (classic node so it keeps the familiar LoRA file picker)
 # ======================================================================================
 
-PREVIEW_SLOT = ["LoRA", "Base | LoRA", "off"]
-
-
-class SatoDiveLoRASlotA:
-    SLOT = "A"
-    DEPRECATED = True
-    DESCRIPTION = "Load a LoRA, inspect it, and optionally render a preview with the models from the Studio Setup."
-
-    @classmethod
-    def INPUT_TYPES(cls):
-        return {
-            "required": {
-                "pipe": ("SATO_PIPE",),
-                "lora_name": (folder_paths.get_filename_list("loras"),),
-                "strength_model": ("FLOAT", {"default": 1.0, "min": -4.0, "max": 4.0, "step": 0.01}),
-                "strength_clip": ("FLOAT", {"default": 1.0, "min": -4.0, "max": 4.0, "step": 0.01}),
-                "preview": (PREVIEW_SLOT, {"default": "LoRA",
-                                           "tooltip": "Render a preview inside this node. 'off' only loads + analyses the LoRA."}),
-            },
-        }
-
-    RETURN_TYPES = ("SATO_LORA", "MODEL", "CLIP", "IMAGE")
-    RETURN_NAMES = ("lora", "model", "clip", "preview")
-    FUNCTION = "run"
-    CATEGORY = CATEGORY
-    OUTPUT_NODE = True
-
-    def run(self, pipe, lora_name, strength_model, strength_clip, preview):
-        return run_slot(pipe, lora_name, strength_model, strength_clip, preview, self.SLOT)
-
-
 def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A"):
-    """Shared by the LoRA Slot nodes. preview accepts the new labels and the v1 values."""
+    """LoRA Slot logic: load + analyse one LoRA, optionally render its preview."""
     mode = "off" if preview.lower().startswith("off") else ("both" if "base" in preview.lower() else "lora")
     path, sd, meta = core.load_lora_file(lora_name)
     info = dict(core.inspect_lora_file(lora_name, pipe["arch"]))
@@ -161,7 +137,7 @@ def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A"
     if matched == 0:
         log.warning("[SatoDive] LoRA %s: no keys matched the connected model - wrong architecture?", lora_name)
 
-    m2, c2 = comfy.sd.load_lora_for_models(model, clip, sd, strength_model, strength_clip if clip is not None else 0.0)
+    m2, c2 = core.apply_lora(model, clip, sd, strength_model, strength_clip if clip is not None else 0.0)
     if clip is None:
         c2 = None
     info["patched"] = P.patched_count(model, m2)
@@ -174,7 +150,10 @@ def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A"
 
     img = P.blank()
     ui = {}
-    if mode != "off":
+    if mode != "off" and matched == 0:
+        img = P.label_image(P.message_image("This LoRA does not fit the loaded model", "0 weights matched - it was made for another architecture"), "NO FIT", "BAD")
+        ui = _preview_ui(img, "SatoDive_slot{}".format(letter))
+    elif mode != "off":
         lora_img = P.render(pipe, m2, c2 if c2 is not None else clip)
         if mode == "both":
             base_img = P.render(pipe, model, clip)
@@ -187,112 +166,146 @@ def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A"
     return {"ui": ui, "result": (bundle, m2, c2, img)}
 
 
-class SatoDiveLoRASlotB(SatoDiveLoRASlotA):
-    SLOT = "B"
-
-
-# ======================================================================================
-# 3) Merge Studio
-# ======================================================================================
-
-PREVIEW_MERGE = ["Merged", "A | B | Merged", "Base | Merged", "off"]
-
-
-class SatoDiveLoRAMergeStudio:
-    DEPRECATED = True
-    DESCRIPTION = ("Blend LoRA A and LoRA B with global + per-block weights detected from both LoRAs, "
-                   "preview the result and save it as a new LoRA.")
+class SatoDiveLoRASlot:
+    DESCRIPTION = ("Load ONE LoRA. Shows its info (rank, trigger words, Civitai pictures) and can render a "
+                   "preview with just this LoRA. Add one Slot per LoRA and plug them into the Merge Studio.")
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "pipe": ("SATO_PIPE",),
-                "lora_a": ("SATO_LORA",),
-                "lora_b": ("SATO_LORA",),
-                "method": (core.MERGE_METHODS, {"default": core.MERGE_METHODS[0],
-                           "tooltip": "add: exact weighted sum (rank A+B). svd: weighted sum compressed to 'rank'. "
-                                      "ties / dare: conflict-aware merges where both LoRAs touch the same weight."}),
-                "weight_a": ("FLOAT", {"default": 1.0, "min": -3.0, "max": 3.0, "step": 0.01}),
-                "weight_b": ("FLOAT", {"default": 1.0, "min": -3.0, "max": 3.0, "step": 0.01}),
-                "use_slot_strengths": ("BOOLEAN", {"default": True,
-                                       "tooltip": "Multiply by the strengths set on the A / B slot nodes (WYSIWYG with their previews)."}),
-                "rank": ("INT", {"default": 0, "min": 0, "max": 1024, "step": 1,
-                                 "tooltip": "Output rank for svd / ties / dare. 0 = auto."}),
-                "density": ("FLOAT", {"default": 0.5, "min": 0.01, "max": 1.0, "step": 0.01,
-                                      "tooltip": "ties / dare: fraction of each delta that is kept."}),
-                "text_encoder": (core.TE_MODES, {"default": "merge"}),
-                "merged_scale": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 3.0, "step": 0.01, "advanced": True,
-                                           "tooltip": "Baked into the saved LoRA."}),
-                "preview": (PREVIEW_MERGE, {"default": "Merged"}),
-                "preview_strength": ("FLOAT", {"default": 1.0, "min": -4.0, "max": 4.0, "step": 0.01}),
-                "save_lora": ("BOOLEAN", {"default": False, "label_on": "save on run", "label_off": "don't save"}),
-                "filename": ("STRING", {"default": "SatoDive_merge"}),
-                "precision": (list(PRECISIONS.keys()), {"default": "fp16", "advanced": True}),
-                "key_style": (KEY_STYLES, {"default": KEY_STYLES[0], "advanced": True,
-                              "tooltip": "comfy: native ComfyUI keys. kohya: lora_unet_* keys (wider tool compatibility)."}),
-                "dare_seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff, "advanced": True,
-                                      "tooltip": "Seed for the DARE random drop (kept fixed so results are reproducible)."}),
-                "block_weights": ("STRING", {"default": "{}", "multiline": False,
-                                             "tooltip": "Managed by the slider panel."}),
+                "pipe": ("SATO_PIPE", {"tooltip": "Connect the 'pipe' output of LoRA Studio Setup."}),
+                "lora_name": (folder_paths.get_filename_list("loras"), {"tooltip": "The LoRA file. Use 🔎 Browse to pick one with pictures."}),
+                "strength_model": ("FLOAT", {"default": 1.0, "min": -4.0, "max": 4.0, "step": 0.01,
+                                             "tooltip": "How strong this LoRA is on the image model. 1.0 = as trained. Also used by the merge when 'use_slot_strengths' is on."}),
+                "strength_clip": ("FLOAT", {"default": 1.0, "min": -4.0, "max": 4.0, "step": 0.01,
+                                            "tooltip": "Strength on the text encoder (only matters if the LoRA trained it - the card tells you)."}),
+                "preview": (H.PREVIEW_SLOT, {"default": H.PREVIEW_SLOT[0],
+                                             "tooltip": "LoRA only: render with this LoRA. Before / after: base model next to the LoRA. "
+                                                        "Off: only load + analyse (fast)."}),
             },
         }
 
-    RETURN_TYPES = ("SATO_LORA", "MODEL", "CLIP", "IMAGE", "STRING")
-    RETURN_NAMES = ("merged_lora", "model", "clip", "preview", "saved_path")
+    RETURN_TYPES = ("SATO_LORA", "MODEL", "CLIP", "IMAGE")
+    RETURN_NAMES = ("lora", "model", "clip", "preview")
+    OUTPUT_TOOLTIPS = ("Plug into the Merge Studio.", "Model with only this LoRA applied.",
+                       "CLIP with only this LoRA applied.", "The preview image.")
     FUNCTION = "run"
     CATEGORY = CATEGORY
     OUTPUT_NODE = True
 
-    def run(self, pipe, lora_a, lora_b, method, weight_a, weight_b, use_slot_strengths, rank, density,
-            text_encoder, merged_scale, preview, preview_strength, save_lora, filename, precision,
-            key_style, dare_seed, block_weights):
+    def run(self, pipe, lora_name, strength_model, strength_clip, preview):
+        return run_slot(pipe, lora_name, strength_model, strength_clip, preview, "LoRA")
+
+
+# ======================================================================================
+# 3) Merge Studio (V3 node -> native auto-growing LoRA inputs)
+# ======================================================================================
+
+def _parse_mix(text):
+    try:
+        d = json.loads(text or "{}")
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
+class SatoDiveLoRAMergeStudioV2(io.ComfyNode):
+    @classmethod
+    def define_schema(cls):
+        T = H.TIPS
+        return io.Schema(
+            node_id="SatoDiveLoRAMergeStudioV2",
+            display_name="③ LoRA Merge Studio - SatoDive",
+            category=CATEGORY,
+            description=("Mix 2 to 10 LoRAs into one. Connect LoRA Slots to lora_A, lora_B... (a new input appears every time "
+                         "you connect one). Use the mixer and per-block sliders, preview, then save as a new LoRA."),
+            search_aliases=["lora merge", "merge lora", "lora mixer", "combine lora", "satodive"],
+            is_output_node=True,
+            inputs=[
+                SatoPipeType.Input("pipe", tooltip="Connect the 'pipe' output of LoRA Studio Setup."),
+                io.Autogrow.Input("loras", template=io.Autogrow.TemplateNames(
+                    SatoLoraType.Input("lora"), names=["lora_{}".format(c) for c in LETTERS], min=2),
+                    tooltip="Connect LoRA Slot nodes. A new input appears each time you connect one (up to 10)."),
+                io.Combo.Input("method", options=H.METHODS, default=H.METHODS[0],
+                               tooltip="How the LoRAs are combined. The guide card below explains the choice you pick."),
+                io.Float.Input("overall_strength", default=1.0, min=0.0, max=3.0, step=0.01, tooltip=T["overall_strength"]),
+                io.Boolean.Input("use_slot_strengths", default=True, tooltip=T["use_slot_strengths"]),
+                io.Int.Input("output_rank", default=0, min=0, max=1024, tooltip=T["output_rank"]),
+                io.Float.Input("keep_ratio", default=0.5, min=0.01, max=1.0, step=0.01, tooltip=T["keep_ratio"]),
+                io.Combo.Input("text_encoder", options=H.TE_MODES, default=H.TE_MODES[0], tooltip=T["text_encoder"]),
+                io.Combo.Input("preview", options=H.PREVIEW_MERGE, default=H.PREVIEW_MERGE[0], tooltip=T["preview"]),
+                io.Float.Input("preview_strength", default=1.0, min=-4.0, max=4.0, step=0.01, tooltip=T["preview_strength"]),
+                io.Boolean.Input("save_lora", default=False, label_on="save when run", label_off="don't save", tooltip=T["save_lora"]),
+                io.String.Input("filename", default="SatoDive_merge", tooltip=T["filename"]),
+                io.Combo.Input("precision", options=list(PRECISIONS.keys()), default="fp16", tooltip=T["precision"], advanced=True),
+                io.Combo.Input("key_style", options=KEY_STYLES, default=KEY_STYLES[0], tooltip=T["key_style"], advanced=True),
+                io.Int.Input("dare_seed", default=0, min=0, max=0xffffffffffffffff, tooltip=T["dare_seed"], advanced=True,
+                             control_after_generate=False),
+                io.String.Input("mix_settings", default="{}", tooltip="Managed by the mixer / block panel."),
+            ],
+            outputs=[
+                SatoLoraType.Output(display_name="merged_lora", tooltip="Plug into another Merge Studio to keep mixing."),
+                io.Model.Output(display_name="model", tooltip="Model with the merged LoRA (at preview_strength)."),
+                io.Clip.Output(display_name="clip", tooltip="CLIP with the merged LoRA (at preview_strength)."),
+                io.Image.Output(display_name="preview"),
+                io.String.Output(display_name="saved_path"),
+            ],
+        )
+
+    @classmethod
+    def execute(cls, pipe, loras, method, overall_strength, use_slot_strengths, output_rank, keep_ratio,
+                text_encoder, preview, preview_strength, save_lora, filename, precision="fp16",
+                key_style=KEY_STYLES[0], dare_seed=0, mix_settings="{}") -> io.NodeOutput:
         model, clip = pipe["model"], pipe.get("clip")
         preset = A.get_preset(pipe.get("group_arch", pipe["arch"]))
 
-        try:
-            bw = json.loads(block_weights or "{}")
-        except Exception:
-            bw = {}
-        blk_a = {k: float(v) for k, v in (bw.get("a") or {}).items()}
-        blk_b = {k: float(v) for k, v in (bw.get("b") or {}).items()}
+        connected = []
+        for c in LETTERS:
+            b = (loras or {}).get("lora_{}".format(c))
+            if b is not None:
+                connected.append((c, b))
+        if len(connected) < 1:
+            raise RuntimeError("Connect at least two LoRA Slot nodes to the Merge Studio.")
+
+        mix = _parse_mix(mix_settings)
+        gains = mix.get("_mix") or {}
+        muted = set(mix.get("_mute") or [])
+        solo = set(mix.get("_solo") or [])
 
         key_map = core.build_key_map(model, clip)
         shapes = core.build_shape_lookup(model, clip)
-        da, sa = core.extract_deltas(lora_a.sd, key_map, shapes)
-        db, sb = core.extract_deltas(lora_b.sd, key_map, shapes)
+        deltas, stats, wfuns, ranks, used = [], [], [], [], []
+        for letter, b in connected:
+            d, st = core.extract_deltas(b.sd, key_map, shapes)
+            sm = b.strength_model if use_slot_strengths else 1.0
+            sc = b.strength_clip if use_slot_strengths else 1.0
+            gain = float(gains.get(letter, 1.0))
+            if letter in muted or (solo and letter not in solo):
+                gain = 0.0
+            blocks = {k: float(v) for k, v in (mix.get(letter) or {}).items()}
+            wfuns.append(lambda g, blocks=blocks, sm=sm, sc=sc, gain=gain: gain * blocks.get(g, 1.0) * (sc if g == A.TE_GROUP else sm))
+            r = [x.rank for v in d.values() for x in v if x.lowrank]
+            deltas.append(d)
+            stats.append(st)
+            ranks.append(max(r) if r else 0)
+            used.append({"letter": letter, "name": b.name, "gain": gain, "strength": [sm, sc], "matched": st["matched"]})
 
-        sm_a = lora_a.strength_model if use_slot_strengths else 1.0
-        sc_a = lora_a.strength_clip if use_slot_strengths else 1.0
-        sm_b = lora_b.strength_model if use_slot_strengths else 1.0
-        sc_b = lora_b.strength_clip if use_slot_strengths else 1.0
-
-        def wfun(blk, sm, sc):
-            return lambda g: float(blk.get(g, 1.0)) * (sc if g == A.TE_GROUP else sm)
-
-        ranks_a = [d.rank for v in da.values() for d in v if d.lowrank]
-        ranks_b = [d.rank for v in db.values() for d in v if d.lowrank]
-        merged, report = core.merge(
-            da, db, preset, weight_a, weight_b, wfun(blk_a, sm_a, sc_a), wfun(blk_b, sm_b, sc_b), method,
-            rank=rank, density=density, seed=dare_seed, te_mode=text_encoder, merged_scale=merged_scale,
-            rank_a=max(ranks_a) if ranks_a else 0, rank_b=max(ranks_b) if ranks_b else 0,
-        )
+        te_mode = {H.TE_MODES[0]: "merge", H.TE_MODES[1]: "first only", H.TE_MODES[2]: "drop"}.get(text_encoder, "merge")
+        merged, report = core.merge_many(deltas, preset, wfuns, method, rank=output_rank, density=keep_ratio,
+                                         seed=dare_seed, te_mode=te_mode, merged_scale=overall_strength, ranks=ranks)
         if not merged:
-            raise RuntimeError("SatoDive merge produced nothing: neither LoRA matched the connected model "
-                               "(A matched {}, B matched {}). Check the architecture / UNET.".format(sa["matched"], sb["matched"]))
+            raise RuntimeError("Nothing to merge: no LoRA matched the connected model (or every LoRA is muted). "
+                               "Check the architecture / UNET and the mixer.")
 
         dtype = PRECISIONS.get(precision, torch.float16)
         sd = core.deltas_to_state_dict(merged, key_style, dtype)
-
         out_name = os.path.splitext(os.path.basename(filename or "SatoDive_merge"))[0]
-        recipe = {
-            "a": lora_a.name, "b": lora_b.name, "method": method, "weight_a": weight_a, "weight_b": weight_b,
-            "slot_strengths": [sm_a, sc_a, sm_b, sc_b], "rank": rank, "density": density,
-            "text_encoder": text_encoder, "merged_scale": merged_scale, "block_weights": bw,
-            "arch": pipe["arch"], "output_name": out_name, "dare_seed": dare_seed,
-        }
-        info_a, info_b = lora_a.info or {}, lora_b.info or {}
-        triggers = list(dict.fromkeys((info_a.get("trigger_words") or []) + (info_b.get("trigger_words") or [])))
+        recipe = {"loras": used, "method": method, "overall_strength": overall_strength,
+                  "use_slot_strengths": use_slot_strengths, "output_rank": output_rank, "keep_ratio": keep_ratio,
+                  "text_encoder": text_encoder, "mix_settings": mix, "arch": pipe["arch"], "output_name": out_name,
+                  "dare_seed": dare_seed}
+        triggers = list(dict.fromkeys(t for _, b in connected for t in ((b.info or {}).get("trigger_words") or [])))
 
         saved_path = ""
         if save_lora:
@@ -302,53 +315,56 @@ class SatoDiveLoRAMergeStudio:
 
         merged_info = core.inspect_state_dict(sd, {"satodive_recipe": json.dumps(recipe)}, pipe["arch"])
         merged_info["trigger_words"] = triggers
-        bundle = core.SatoLoRA("merge({} + {})".format(lora_a.name, lora_b.name), sd, {}, path=saved_path or None,
-                               arch=pipe["arch"], info=merged_info, merged=True, recipe=recipe)
+        bundle = core.SatoLoRA("merge({})".format(" + ".join(os.path.basename(b.name) for _, b in connected)), sd, {},
+                               path=saved_path or None, arch=pipe["arch"], info=merged_info, merged=True, recipe=recipe)
 
-        m2, c2 = comfy.sd.load_lora_for_models(model, clip, sd, preview_strength,
+        m2, c2 = core.apply_lora(model, clip, sd, preview_strength,
                                                preview_strength if clip is not None else 0.0)
         if clip is None:
             c2 = None
 
         img = P.blank()
         ui = {}
-        if preview != "off":
+        if not preview.lower().startswith("off"):
             merged_img = P.render(pipe, m2, c2 if c2 is not None else clip)
-            if preview == "A | B | Merged":
-                ma, ca = comfy.sd.load_lora_for_models(model, clip, lora_a.sd, sm_a, sc_a if clip is not None else 0.0)
-                mb, cb = comfy.sd.load_lora_for_models(model, clip, lora_b.sd, sm_b, sc_b if clip is not None else 0.0)
-                img_a = P.render(pipe, ma, ca if ca is not None else clip)
-                img_b = P.render(pipe, mb, cb if cb is not None else clip)
-                img = P.hstack([P.label_image(img_a, "A"), P.label_image(img_b, "B"), P.label_image(merged_img, "MERGE")])
-            elif preview == "Base | Merged":
-                base_img = P.render(pipe, model, clip)
-                img = P.hstack([P.label_image(base_img, "BASE"), P.label_image(merged_img, "MERGE")])
+            if preview.lower().startswith("compare"):
+                tiles = []
+                for (letter, b), u in zip(connected, used):
+                    mi, ci = core.apply_lora(model, clip, b.sd, u["strength"][0],
+                                                           u["strength"][1] if clip is not None else 0.0)
+                    tiles.append(P.label_image(P.render(pipe, mi, ci if ci is not None else clip), letter))
+                tiles.append(P.label_image(merged_img, "MERGE"))
+                img = P.grid(tiles, max_cols=3 if len(tiles) > 4 else 4)
+            elif "base" in preview.lower():
+                img = P.hstack([P.label_image(P.render(pipe, model, clip), "BASE"), P.label_image(merged_img, "MERGE")])
             else:
                 img = merged_img
             ui = _preview_ui(img, "SatoDive_merge")
 
         report.update({
-            "a_matched": sa["matched"], "b_matched": sb["matched"],
-            "a_skipped": len(sa["skipped"]), "b_skipped": len(sb["skipped"]),
+            "loras": [{"letter": u["letter"], "matched": u["matched"], "gain": u["gain"]} for u in used],
             "saved": os.path.relpath(saved_path, folder_paths.get_folder_paths("loras")[0]) if saved_path else "",
             "size_mb": merged_info.get("size_mb"),
+            "patched": P.patched_count(model, m2),
         })
         ui["sato_report"] = [report]
-        ui["sato_groups"] = core.groups_payload(core.delta_groups(da, preset), core.delta_groups(db, preset),
-                                                pipe.get("group_arch", pipe["arch"]))
-        return {"ui": ui, "result": (bundle, m2, c2, img, saved_path)}
+        group_arch = pipe.get("group_arch", pipe["arch"])
+        groups = core.groups_payload_many([core.delta_groups(d, preset) for d in deltas], group_arch)
+        for g in groups:  # counts keyed by letter: robust even if the frontend merges ui lists
+            g["by"] = {u["letter"]: g["counts"][i] for i, u in enumerate(used)}
+        ui["sato_groups"] = groups
+        ui["sato_letters"] = [u["letter"] for u in used]
+        return io.NodeOutput(bundle, m2, c2, img, saved_path, ui=ui)
 
 
 NODE_CLASS_MAPPINGS = {
     "SatoDiveLoRAStudioSetup": SatoDiveStudioSetup,
-    "SatoDiveLoRASlotA": SatoDiveLoRASlotA,
-    "SatoDiveLoRASlotB": SatoDiveLoRASlotB,
-    "SatoDiveLoRAMergeStudio": SatoDiveLoRAMergeStudio,
+    "SatoDiveLoRASlot": SatoDiveLoRASlot,
+    "SatoDiveLoRAMergeStudioV2": SatoDiveLoRAMergeStudioV2,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SatoDiveLoRAStudioSetup": "① LoRA Studio Setup - SatoDive",
-    "SatoDiveLoRASlotA": "LoRA Slot A (legacy) - SatoDive",
-    "SatoDiveLoRASlotB": "LoRA Slot B (legacy) - SatoDive",
-    "SatoDiveLoRAMergeStudio": "LoRA Merge Studio 2-LoRA (legacy) - SatoDive",
+    "SatoDiveLoRASlot": "② LoRA Slot - SatoDive",
+    "SatoDiveLoRAMergeStudioV2": "③ LoRA Merge Studio - SatoDive",
 }

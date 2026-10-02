@@ -1,5 +1,5 @@
 {
- "id": "57848f2d-d090-4462-9207-bc8fd01b8a87",
+ "id": "007a14df-7887-4750-8d71-ca9e7a009fa8",
  "revision": 0,
  "last_node_id": 12,
  "last_link_id": 8,
@@ -299,10 +299,10 @@
    "outputs": [],
    "properties": {},
    "widgets_values": [
-    "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `z_image_turbo_bf16.safetensors`\n- **Load CLIP:** `qwen_3_4b.safetensors` - type **lumina2**\n- **Load VAE:** `ae.safetensors`\n\n"
+    "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `z_image_turbo_bf16.safetensors`\n- **Load CLIP:** `qwen_3_4b.safetensors` - type **lumina2**\n- **Load VAE:** `ae.safetensors`\n\n\u26a0 These are the official file names - **select your own files** after opening. If a name is missing, ComfyUI may silently pick another file: the Setup card turns **red** when a file doesn't match the architecture."
    ],
    "widgets_values_named": {
-    "text": "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `z_image_turbo_bf16.safetensors`\n- **Load CLIP:** `qwen_3_4b.safetensors` - type **lumina2**\n- **Load VAE:** `ae.safetensors`\n\n"
+    "text": "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `z_image_turbo_bf16.safetensors`\n- **Load CLIP:** `qwen_3_4b.safetensors` - type **lumina2**\n- **Load VAE:** `ae.safetensors`\n\n\u26a0 These are the official file names - **select your own files** after opening. If a name is missing, ComfyUI may silently pick another file: the Setup card turns **red** when a file doesn't match the architecture."
    },
    "color": "#2a2a35",
    "bgcolor": "#1b1b24"

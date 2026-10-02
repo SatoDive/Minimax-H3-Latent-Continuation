@@ -118,10 +118,6 @@ def register(server):
         C.set_api_key(data.get("key", ""))
         return web.json_response({"ok": True, "has_key": bool(C.api_key())})
 
-    @routes.get(PREFIX + "/settings")
-    async def settings(request):
-        return web.json_response({"has_key": bool(C.api_key())})
-
     # ---- LoRA browser --------------------------------------------------------------
 
     @routes.get(PREFIX + "/lora_list")

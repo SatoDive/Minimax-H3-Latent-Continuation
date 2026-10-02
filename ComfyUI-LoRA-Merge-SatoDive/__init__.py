@@ -6,10 +6,7 @@ Presets: Krea2, Krea2 Raw, Z-Image Turbo / Base, Flux.2 Klein 9B / Base, Qwen-Im
 
 import logging
 
-from . import sato_nodes, sato_nodes_v2
-
-NODE_CLASS_MAPPINGS = {**sato_nodes.NODE_CLASS_MAPPINGS, **sato_nodes_v2.NODE_CLASS_MAPPINGS}
-NODE_DISPLAY_NAME_MAPPINGS = {**sato_nodes.NODE_DISPLAY_NAME_MAPPINGS, **sato_nodes_v2.NODE_DISPLAY_NAME_MAPPINGS}
+from .sato_nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
 WEB_DIRECTORY = "./web"
 

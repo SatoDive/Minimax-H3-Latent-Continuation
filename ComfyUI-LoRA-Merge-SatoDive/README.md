@@ -23,9 +23,19 @@ A ComfyUI node pack for inspecting, previewing and merging LoRAs. Preview every 
 |---|---|
 | **① LoRA Studio Setup** | Connect the native *Load Diffusion Model*, *Load CLIP* and *Load VAE* nodes, then pick the architecture. Steps, CFG, sampler and shift are filled in from the official templates. It warns you if the loaded model doesn't match. There's an optional reference image for edit models. |
 | **② LoRA Slot** (add as many as you want) | One LoRA each, shown on a card: picture, rank, size, text-encoder part, applied weights and trigger words. **▶ Preview this LoRA** runs only this node. You can choose *Before / after* to see the base model next to the LoRA. **ⓘ Info** opens the Civitai dialog and **🔎 Browse** opens the gallery. |
-| **④ LoRA Merge Studio** | Method, mixer, per-block sliders, previews (*Merged*, *Compare every LoRA + merged*, *Before/after*), and **💾 Merge & Save LoRA**, which writes `models/loras/SatoDive/<name>_###.safetensors` and never overwrites. Its `merged_lora` output can feed another Merge Studio. |
+| **③ LoRA Merge Studio** | Method, mixer, per-block sliders, previews (*Merged*, *Compare every LoRA + merged*, *Before/after*), and **💾 Merge & Save LoRA**, which writes `models/loras/SatoDive/<name>_###.safetensors` and never overwrites. Its `merged_lora` output can feed another Merge Studio. |
 
-The old *Slot A / Slot B / 2-LoRA Merge Studio* nodes still load in v1 workflows. They are marked legacy and hidden from search.
+## Wrong file? You get a clear message
+
+If a loader holds a file from another model family (for example a Z-Image UNET with the Krea2 architecture), you are told before anything runs:
+
+* **live in the Setup card** - a red warning as soon as the UNET name or the CLIP type looks wrong,
+* **when you run** - the Setup node stops with a plain message that names the file and the fix, instead of a cryptic "normalized_shape" crash,
+* **per LoRA** - a LoRA made for another architecture shows "does not fit" instead of a useless preview, and the console gets one summary line, not hundreds of "lora key not loaded" warnings.
+
+Choose *Auto-detect / Other* as the architecture to switch the check off.
+
+![setup warning](docs/setup_warning.jpg)
 
 ## Which merge method?
 
