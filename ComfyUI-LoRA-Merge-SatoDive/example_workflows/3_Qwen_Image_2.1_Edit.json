@@ -1,0 +1,1869 @@
+{
+ "id": "68b4b7e4-5601-46dd-9ae8-db191179d0ac",
+ "revision": 0,
+ "last_node_id": 14,
+ "last_link_id": 9,
+ "nodes": [
+  {
+   "id": 1,
+   "type": "MarkdownNote",
+   "pos": [
+    0,
+    -470
+   ],
+   "size": [
+    1000,
+    400
+   ],
+   "flags": {},
+   "order": 0,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "# \ud83c\udf9b LoRA Merge Studio - SatoDive\n**Preview every LoRA on its own, mix them, save a brand-new LoRA.**\n\n1. **Models** (yellow) - pick UNET / text encoder / VAE in the native loaders.\n2. **Setup** - choose the architecture: steps, CFG and sampler fill in by themselves.\n3. **LoRA Slots** - pick a LoRA (\ud83d\udd0e *Browse* shows pictures) and press **\u25b6 Preview this LoRA**.\n4. **Merge Studio** - pick a method (the purple card explains it), move the mixer, **\u25b6 Preview merge**.\n5. **\ud83d\udcbe Merge & Save LoRA** \u2192 `models/loras/SatoDive/`.\n\n**Want more LoRAs?** Double-click the canvas \u2192 type *LoRA Slot* \u2192 connect its **lora** output to the free `lora_\u2026` input of the Merge Studio. A new input appears every time (up to 10)."
+   ],
+   "widgets_values_named": {
+    "text": "# \ud83c\udf9b LoRA Merge Studio - SatoDive\n**Preview every LoRA on its own, mix them, save a brand-new LoRA.**\n\n1. **Models** (yellow) - pick UNET / text encoder / VAE in the native loaders.\n2. **Setup** - choose the architecture: steps, CFG and sampler fill in by themselves.\n3. **LoRA Slots** - pick a LoRA (\ud83d\udd0e *Browse* shows pictures) and press **\u25b6 Preview this LoRA**.\n4. **Merge Studio** - pick a method (the purple card explains it), move the mixer, **\u25b6 Preview merge**.\n5. **\ud83d\udcbe Merge & Save LoRA** \u2192 `models/loras/SatoDive/`.\n\n**Want more LoRAs?** Double-click the canvas \u2192 type *LoRA Slot* \u2192 connect its **lora** output to the free `lora_\u2026` input of the Merge Studio. A new input appears every time (up to 10)."
+   },
+   "color": "#2a2a35",
+   "bgcolor": "#1b1b24"
+  },
+  {
+   "id": 2,
+   "type": "UNETLoader",
+   "pos": [
+    10,
+    20
+   ],
+   "size": [
+    370,
+    82
+   ],
+   "flags": {},
+   "order": 1,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "unet_name",
+     "locked": null,
+     "name": "unet_name",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "unet_name"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "weight_dtype",
+     "locked": null,
+     "name": "weight_dtype",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "weight_dtype"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "MODEL",
+     "locked": null,
+     "name": "MODEL",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "MODEL",
+     "pos": null,
+     "slot_index": null,
+     "links": [
+      1
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "UNETLoader"
+   },
+   "widgets_values": [
+    "qwen_image_2.1_int8_convrot.safetensors",
+    "default"
+   ],
+   "widgets_values_named": {
+    "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+    "weight_dtype": "default"
+   }
+  },
+  {
+   "id": 3,
+   "type": "CLIPLoader",
+   "pos": [
+    10,
+    150
+   ],
+   "size": [
+    370,
+    106
+   ],
+   "flags": {},
+   "order": 2,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "clip_name",
+     "locked": null,
+     "name": "clip_name",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "clip_name"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "type",
+     "locked": null,
+     "name": "type",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "type"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "device",
+     "locked": null,
+     "name": "device",
+     "nameLocked": null,
+     "removable": null,
+     "shape": 7,
+     "type": "COMBO",
+     "widget": {
+      "name": "device"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "CLIP",
+     "locked": null,
+     "name": "CLIP",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "CLIP",
+     "pos": null,
+     "slot_index": null,
+     "links": [
+      2
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "CLIPLoader"
+   },
+   "widgets_values": [
+    "qwen3vl_8b_int8_convrot.safetensors",
+    "qwen_image",
+    "default"
+   ],
+   "widgets_values_named": {
+    "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+    "type": "qwen_image",
+    "device": "default"
+   }
+  },
+  {
+   "id": 4,
+   "type": "VAELoader",
+   "pos": [
+    10,
+    300
+   ],
+   "size": [
+    370,
+    58
+   ],
+   "flags": {},
+   "order": 3,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "vae_name",
+     "locked": null,
+     "name": "vae_name",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "vae_name"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "VAE",
+     "locked": null,
+     "name": "VAE",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "VAE",
+     "pos": null,
+     "slot_index": null,
+     "links": [
+      3
+     ]
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "VAELoader"
+   },
+   "widgets_values": [
+    "qwen_image_2.1_vae_bf16.safetensors"
+   ],
+   "widgets_values_named": {
+    "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+   }
+  },
+  {
+   "id": 5,
+   "type": "MarkdownNote",
+   "pos": [
+    10,
+    390
+   ],
+   "size": [
+    370,
+    160
+   ],
+   "flags": {},
+   "order": 4,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `qwen_image_2.1_int8_convrot.safetensors`\n- **Load CLIP:** `qwen3vl_8b_int8_convrot.safetensors` - type **qwen_image**\n- **Load VAE:** `qwen_image_2.1_vae_bf16.safetensors`\n\n"
+   ],
+   "widgets_values_named": {
+    "text": "### 1 \u00b7 Models (native ComfyUI loaders)\nUse the normal loaders - change any file whenever you want.\n\n- **Load Diffusion Model:** `qwen_image_2.1_int8_convrot.safetensors`\n- **Load CLIP:** `qwen3vl_8b_int8_convrot.safetensors` - type **qwen_image**\n- **Load VAE:** `qwen_image_2.1_vae_bf16.safetensors`\n\n"
+   },
+   "color": "#2a2a35",
+   "bgcolor": "#1b1b24"
+  },
+  {
+   "id": 6,
+   "type": "SatoDiveLoRAStudioSetup",
+   "pos": [
+    440,
+    20
+   ],
+   "size": [
+    400,
+    658
+   ],
+   "flags": {},
+   "order": 10,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "model",
+     "locked": null,
+     "name": "model",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "MODEL",
+     "pos": null,
+     "link": 1
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "clip",
+     "locked": null,
+     "name": "clip",
+     "nameLocked": null,
+     "removable": null,
+     "shape": 7,
+     "type": "CLIP",
+     "pos": null,
+     "link": 2
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "vae",
+     "locked": null,
+     "name": "vae",
+     "nameLocked": null,
+     "removable": null,
+     "shape": 7,
+     "type": "VAE",
+     "pos": null,
+     "link": 3
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "reference_image",
+     "locked": null,
+     "name": "reference_image",
+     "nameLocked": null,
+     "removable": null,
+     "shape": 7,
+     "type": "IMAGE",
+     "pos": null,
+     "link": 4
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "architecture",
+     "locked": null,
+     "name": "architecture",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "architecture"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "prompt",
+     "locked": null,
+     "name": "prompt",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "STRING",
+     "widget": {
+      "name": "prompt"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "negative",
+     "locked": null,
+     "name": "negative",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "STRING",
+     "widget": {
+      "name": "negative"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "seed",
+     "locked": null,
+     "name": "seed",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "INT",
+     "widget": {
+      "name": "seed"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "steps",
+     "locked": null,
+     "name": "steps",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "INT",
+     "widget": {
+      "name": "steps"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "cfg",
+     "locked": null,
+     "name": "cfg",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "cfg"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "sampler",
+     "locked": null,
+     "name": "sampler",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "sampler"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "scheduler",
+     "locked": null,
+     "name": "scheduler",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "scheduler"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "width",
+     "locked": null,
+     "name": "width",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "INT",
+     "widget": {
+      "name": "width"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "height",
+     "locked": null,
+     "name": "height",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "INT",
+     "widget": {
+      "name": "height"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "shift",
+     "locked": null,
+     "name": "shift",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "shift"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "match_reference_size",
+     "locked": null,
+     "name": "match_reference_size",
+     "nameLocked": null,
+     "removable": null,
+     "shape": 7,
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "match_reference_size"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "isolated_previews",
+     "locked": null,
+     "name": "isolated_previews",
+     "nameLocked": null,
+     "removable": null,
+     "shape": 7,
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "isolated_previews"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "pipe",
+     "locked": null,
+     "name": "pipe",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_PIPE",
+     "pos": null,
+     "slot_index": null,
+     "links": [
+      5,
+      7,
+      9
+     ]
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "model",
+     "locked": null,
+     "name": "model",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "MODEL",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "clip",
+     "locked": null,
+     "name": "clip",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "CLIP",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "vae",
+     "locked": null,
+     "name": "vae",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "VAE",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SatoDiveLoRAStudioSetup"
+   },
+   "widgets_values": [
+    "Qwen-Image 2.1 (Edit)",
+    "Change the jacket to glossy red leather, keep the face, pose and background identical",
+    "",
+    42,
+    "fixed",
+    25,
+    1,
+    "euler",
+    "simple",
+    1024,
+    1024,
+    0,
+    true,
+    true
+   ],
+   "widgets_values_named": {
+    "architecture": "Qwen-Image 2.1 (Edit)",
+    "prompt": "Change the jacket to glossy red leather, keep the face, pose and background identical",
+    "negative": "",
+    "seed": 42,
+    "fixed": "fixed",
+    "steps": 25,
+    "cfg": 1,
+    "sampler": "euler",
+    "scheduler": "simple",
+    "width": 1024,
+    "height": 1024,
+    "shift": 0,
+    "match_reference_size": true,
+    "isolated_previews": true
+   },
+   "color": "#3b2f0f",
+   "bgcolor": "#17150f"
+  },
+  {
+   "id": 7,
+   "type": "MarkdownNote",
+   "pos": [
+    870,
+    20
+   ],
+   "size": [
+    230,
+    520
+   ],
+   "flags": {},
+   "order": 5,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "### 2 \u00b7 Setup\nPrompt + sampler used by **all** previews.\n\n- Changing **architecture** fills steps / CFG / sampler with the official settings.\n- Keep **seed = fixed**: then tweaking the merge only re-renders the merge, not every slot.\n- **isolated_previews ON** (default): every node reloads the model first, so each preview shows *exactly* its own LoRA.\n- Turbo / distilled models: leave **negative** empty."
+   ],
+   "widgets_values_named": {
+    "text": "### 2 \u00b7 Setup\nPrompt + sampler used by **all** previews.\n\n- Changing **architecture** fills steps / CFG / sampler with the official settings.\n- Keep **seed = fixed**: then tweaking the merge only re-renders the merge, not every slot.\n- **isolated_previews ON** (default): every node reloads the model first, so each preview shows *exactly* its own LoRA.\n- Turbo / distilled models: leave **negative** empty."
+   },
+   "color": "#2a2a35",
+   "bgcolor": "#1b1b24"
+  },
+  {
+   "id": 8,
+   "type": "LoadImage",
+   "pos": [
+    10,
+    560
+   ],
+   "size": [
+    282.798828125,
+    314
+   ],
+   "flags": {},
+   "order": 6,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "image",
+     "locked": null,
+     "name": "image",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "image"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "choose file to upload",
+     "locked": null,
+     "name": "upload",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "IMAGEUPLOAD",
+     "widget": {
+      "name": "upload"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "IMAGE",
+     "locked": null,
+     "name": "IMAGE",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "IMAGE",
+     "pos": null,
+     "slot_index": null,
+     "links": [
+      4
+     ]
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "MASK",
+     "locked": null,
+     "name": "MASK",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "MASK",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "LoadImage"
+   },
+   "widgets_values": [
+    "example.png",
+    "image"
+   ],
+   "widgets_values_named": {
+    "image": "example.png",
+    "upload": "image"
+   }
+  },
+  {
+   "id": 9,
+   "type": "MarkdownNote",
+   "pos": [
+    870,
+    560
+   ],
+   "size": [
+    230,
+    220
+   ],
+   "flags": {},
+   "order": 7,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "### Reference image (edit mode)\nLoad the picture you want to edit here. The previews then show **edits** of this image (Qwen-Image 2.1 / Klein / Krea2 style reference).\nRemove the link to go back to text-to-image."
+   ],
+   "widgets_values_named": {
+    "text": "### Reference image (edit mode)\nLoad the picture you want to edit here. The previews then show **edits** of this image (Qwen-Image 2.1 / Klein / Krea2 style reference).\nRemove the link to go back to text-to-image."
+   },
+   "color": "#2a2a35",
+   "bgcolor": "#1b1b24"
+  },
+  {
+   "id": 10,
+   "type": "SatoDiveLoRAMergeStudioV2",
+   "pos": [
+    2080,
+    20
+   ],
+   "size": [
+    540,
+    784
+   ],
+   "flags": {},
+   "order": 13,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "pipe",
+     "locked": null,
+     "name": "pipe",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_PIPE",
+     "pos": null,
+     "link": 9
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "lora_A",
+     "locked": null,
+     "name": "loras.lora_A",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_LORA",
+     "pos": null,
+     "link": 6
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "lora_B",
+     "locked": null,
+     "name": "loras.lora_B",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_LORA",
+     "pos": null,
+     "link": 8
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "lora_C",
+     "locked": null,
+     "name": "loras.lora_C",
+     "nameLocked": null,
+     "removable": null,
+     "shape": 7,
+     "type": "SATO_LORA",
+     "pos": null,
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "method",
+     "locked": null,
+     "name": "method",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "method"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "overall_strength",
+     "locked": null,
+     "name": "overall_strength",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "overall_strength"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "use_slot_strengths",
+     "locked": null,
+     "name": "use_slot_strengths",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "use_slot_strengths"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "output_rank",
+     "locked": null,
+     "name": "output_rank",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "INT",
+     "widget": {
+      "name": "output_rank"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "keep_ratio",
+     "locked": null,
+     "name": "keep_ratio",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "keep_ratio"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "text_encoder",
+     "locked": null,
+     "name": "text_encoder",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "text_encoder"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "preview",
+     "locked": null,
+     "name": "preview",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "preview"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "preview_strength",
+     "locked": null,
+     "name": "preview_strength",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "preview_strength"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "save_lora",
+     "locked": null,
+     "name": "save_lora",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "BOOLEAN",
+     "widget": {
+      "name": "save_lora"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "filename",
+     "locked": null,
+     "name": "filename",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "STRING",
+     "widget": {
+      "name": "filename"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "precision",
+     "locked": null,
+     "name": "precision",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "precision"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "key_style",
+     "locked": null,
+     "name": "key_style",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "key_style"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "dare_seed",
+     "locked": null,
+     "name": "dare_seed",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "INT",
+     "widget": {
+      "name": "dare_seed"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "mix_settings",
+     "locked": null,
+     "name": "mix_settings",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "STRING",
+     "widget": {
+      "name": "mix_settings"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "merged_lora",
+     "locked": null,
+     "name": "merged_lora",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_LORA",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "model",
+     "locked": null,
+     "name": "model",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "MODEL",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "clip",
+     "locked": null,
+     "name": "clip",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "CLIP",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "preview",
+     "locked": null,
+     "name": "preview",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "IMAGE",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "saved_path",
+     "locked": null,
+     "name": "saved_path",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "STRING",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SatoDiveLoRAMergeStudioV2"
+   },
+   "widgets_values": [
+    "Blend - keep everything (exact)",
+    1,
+    true,
+    0,
+    0.5,
+    "Blend (follow sliders)",
+    "Merged result",
+    1,
+    false,
+    "Qwen21_edit_mix",
+    "fp16",
+    "comfy (diffusion_model.*)",
+    0,
+    "{}"
+   ],
+   "widgets_values_named": {
+    "method": "Blend - keep everything (exact)",
+    "overall_strength": 1,
+    "use_slot_strengths": true,
+    "output_rank": 0,
+    "keep_ratio": 0.5,
+    "text_encoder": "Blend (follow sliders)",
+    "preview": "Merged result",
+    "preview_strength": 1,
+    "save_lora": false,
+    "filename": "Qwen21_edit_mix",
+    "precision": "fp16",
+    "key_style": "comfy (diffusion_model.*)",
+    "dare_seed": 0,
+    "mix_settings": "{}"
+   },
+   "color": "#2d1d63",
+   "bgcolor": "#141122"
+  },
+  {
+   "id": 11,
+   "type": "SatoDiveLoRASlot",
+   "pos": [
+    1140,
+    20
+   ],
+   "size": [
+    420,
+    374
+   ],
+   "flags": {},
+   "order": 11,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "pipe",
+     "locked": null,
+     "name": "pipe",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_PIPE",
+     "pos": null,
+     "link": 5
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "lora_name",
+     "locked": null,
+     "name": "lora_name",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_name"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "strength_model",
+     "locked": null,
+     "name": "strength_model",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_model"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "strength_clip",
+     "locked": null,
+     "name": "strength_clip",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_clip"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "preview",
+     "locked": null,
+     "name": "preview",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "preview"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "lora",
+     "locked": null,
+     "name": "lora",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_LORA",
+     "pos": null,
+     "slot_index": null,
+     "links": [
+      6
+     ]
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "model",
+     "locked": null,
+     "name": "model",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "MODEL",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "clip",
+     "locked": null,
+     "name": "clip",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "CLIP",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "preview",
+     "locked": null,
+     "name": "preview",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "IMAGE",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SatoDiveLoRASlot"
+   },
+   "widgets_values": [
+    "your_edit_lora_A.safetensors",
+    1,
+    1,
+    "LoRA only"
+   ],
+   "widgets_values_named": {
+    "lora_name": "your_edit_lora_A.safetensors",
+    "strength_model": 1,
+    "strength_clip": 1,
+    "preview": "LoRA only"
+   },
+   "color": "#0b3d47",
+   "bgcolor": "#121318"
+  },
+  {
+   "id": 12,
+   "type": "SatoDiveLoRASlot",
+   "pos": [
+    1590,
+    20
+   ],
+   "size": [
+    420,
+    374
+   ],
+   "flags": {},
+   "order": 12,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "pipe",
+     "locked": null,
+     "name": "pipe",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_PIPE",
+     "pos": null,
+     "link": 7
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "lora_name",
+     "locked": null,
+     "name": "lora_name",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "lora_name"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "strength_model",
+     "locked": null,
+     "name": "strength_model",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_model"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "strength_clip",
+     "locked": null,
+     "name": "strength_clip",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "FLOAT",
+     "widget": {
+      "name": "strength_clip"
+     },
+     "link": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "preview",
+     "locked": null,
+     "name": "preview",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "COMBO",
+     "widget": {
+      "name": "preview"
+     },
+     "link": null
+    }
+   ],
+   "outputs": [
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "lora",
+     "locked": null,
+     "name": "lora",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "SATO_LORA",
+     "pos": null,
+     "slot_index": null,
+     "links": [
+      8
+     ]
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "model",
+     "locked": null,
+     "name": "model",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "MODEL",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "clip",
+     "locked": null,
+     "name": "clip",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "CLIP",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    },
+    {
+     "color_off": null,
+     "color_on": null,
+     "dir": null,
+     "label": null,
+     "localized_name": "preview",
+     "locked": null,
+     "name": "preview",
+     "nameLocked": null,
+     "removable": null,
+     "shape": null,
+     "type": "IMAGE",
+     "pos": null,
+     "slot_index": null,
+     "links": null
+    }
+   ],
+   "properties": {
+    "Node name for S&R": "SatoDiveLoRASlot"
+   },
+   "widgets_values": [
+    "your_edit_lora_B.safetensors",
+    1,
+    1,
+    "LoRA only"
+   ],
+   "widgets_values_named": {
+    "lora_name": "your_edit_lora_B.safetensors",
+    "strength_model": 1,
+    "strength_clip": 1,
+    "preview": "LoRA only"
+   },
+   "color": "#4b1437",
+   "bgcolor": "#121318"
+  },
+  {
+   "id": 13,
+   "type": "MarkdownNote",
+   "pos": [
+    1140,
+    800
+   ],
+   "size": [
+    870,
+    230
+   ],
+   "flags": {},
+   "order": 8,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "### 3 \u00b7 LoRA Slots - one per LoRA\n- **\u25b6 Preview this LoRA** renders with *only this LoRA* (*Before / after* puts the base model next to it).\n- **Applied \u2713 N weights** = the LoRA really changes the model. \u2717 = wrong architecture.\n- **\u24d8 Info** = Civitai pictures, base model, trigger words (click **\u2295** to add one to the prompt), your notes and strength range.\n- **\ud83d\udd0e Browse** = pick a LoRA from a picture gallery.\n- The slot's **strength** is also used by the merge (when *use_slot_strengths* is on)."
+   ],
+   "widgets_values_named": {
+    "text": "### 3 \u00b7 LoRA Slots - one per LoRA\n- **\u25b6 Preview this LoRA** renders with *only this LoRA* (*Before / after* puts the base model next to it).\n- **Applied \u2713 N weights** = the LoRA really changes the model. \u2717 = wrong architecture.\n- **\u24d8 Info** = Civitai pictures, base model, trigger words (click **\u2295** to add one to the prompt), your notes and strength range.\n- **\ud83d\udd0e Browse** = pick a LoRA from a picture gallery.\n- The slot's **strength** is also used by the merge (when *use_slot_strengths* is on)."
+   },
+   "color": "#2a2a35",
+   "bgcolor": "#1b1b24"
+  },
+  {
+   "id": 14,
+   "type": "MarkdownNote",
+   "pos": [
+    2650,
+    20
+   ],
+   "size": [
+    290,
+    470
+   ],
+   "flags": {},
+   "order": 9,
+   "mode": 0,
+   "showAdvanced": null,
+   "inputs": [],
+   "outputs": [],
+   "properties": {},
+   "widgets_values": [
+    "### 4 \u00b7 Merge Studio - quick recipes\n- **Character + style:** *Blend - keep everything*, mixer A 1.0 / B 0.8.\n- **Layout from A, look from B:** tab A \u2192 **Composition**, tab B \u2192 **Style & detail**.\n- **Looks muddy / LoRAs fighting:** *Smart blend (TIES)*.\n- **Want MORE style change:** *Bold mix (DARE-TIES)*, keep_ratio 0.3 - 0.6.\n- **Smaller file to share:** *Blend - smaller file (SVD)*, output_rank 32 - 64.\n- **M** mutes a LoRA, **S** solos it - quick A/B testing.\n- **\ud83d\udcbe Merge & Save LoRA** never overwrites: `name_001`, `name_002`\u2026"
+   ],
+   "widgets_values_named": {
+    "text": "### 4 \u00b7 Merge Studio - quick recipes\n- **Character + style:** *Blend - keep everything*, mixer A 1.0 / B 0.8.\n- **Layout from A, look from B:** tab A \u2192 **Composition**, tab B \u2192 **Style & detail**.\n- **Looks muddy / LoRAs fighting:** *Smart blend (TIES)*.\n- **Want MORE style change:** *Bold mix (DARE-TIES)*, keep_ratio 0.3 - 0.6.\n- **Smaller file to share:** *Blend - smaller file (SVD)*, output_rank 32 - 64.\n- **M** mutes a LoRA, **S** solos it - quick A/B testing.\n- **\ud83d\udcbe Merge & Save LoRA** never overwrites: `name_001`, `name_002`\u2026"
+   },
+   "color": "#2a2a35",
+   "bgcolor": "#1b1b24"
+  }
+ ],
+ "links": [
+  [
+   1,
+   2,
+   0,
+   6,
+   0,
+   "MODEL"
+  ],
+  [
+   2,
+   3,
+   0,
+   6,
+   1,
+   "CLIP"
+  ],
+  [
+   3,
+   4,
+   0,
+   6,
+   2,
+   "VAE"
+  ],
+  [
+   4,
+   8,
+   0,
+   6,
+   3,
+   "IMAGE"
+  ],
+  [
+   5,
+   6,
+   0,
+   11,
+   0,
+   "SATO_PIPE"
+  ],
+  [
+   6,
+   11,
+   0,
+   10,
+   1,
+   "SATO_LORA"
+  ],
+  [
+   7,
+   6,
+   0,
+   12,
+   0,
+   "SATO_PIPE"
+  ],
+  [
+   8,
+   12,
+   0,
+   10,
+   2,
+   "SATO_LORA"
+  ],
+  [
+   9,
+   6,
+   0,
+   10,
+   0,
+   "SATO_PIPE"
+  ]
+ ],
+ "floatingLinks": null,
+ "groups": [
+  {
+   "id": 1,
+   "title": "1 \u00b7 Models",
+   "bounding": [
+    -10,
+    -40,
+    410,
+    900
+   ],
+   "color": "#b58b00",
+   "flags": {}
+  },
+  {
+   "id": 2,
+   "title": "2 \u00b7 Setup",
+   "bounding": [
+    420,
+    -40,
+    690,
+    900
+   ],
+   "color": "#a1309b",
+   "flags": {}
+  },
+  {
+   "id": 3,
+   "title": "3 \u00b7 LoRA Slots (one per LoRA)",
+   "bounding": [
+    1120,
+    -40,
+    910,
+    1100
+   ],
+   "color": "#3f789e",
+   "flags": {}
+  },
+  {
+   "id": 4,
+   "title": "4 \u00b7 Merge Studio & Save",
+   "bounding": [
+    2060,
+    -40,
+    900,
+    1500
+   ],
+   "color": "#6d4ad6",
+   "flags": {}
+  }
+ ],
+ "definitions": null,
+ "config": {},
+ "extra": {
+  "ds": {
+   "scale": 0.5,
+   "offset": [
+    40,
+    560
+   ]
+  },
+  "reroutes": null
+ },
+ "version": 0.4
+}

@@ -51,16 +51,18 @@ class SatoDiveStudioSetup:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "model": ("MODEL", {"tooltip": "From the native Load Diffusion Model (UNETLoader) node."}),
-                "architecture": (A.ARCH_NAMES, {"default": "Krea2 (Turbo)"}),
+                "model": ("MODEL", {"tooltip": "Connect the native 'Load Diffusion Model' node here."}),
+                "architecture": (A.ARCH_NAMES, {"default": "Krea2 (Turbo)",
+                                  "tooltip": "Which model family you loaded. Changing it fills in the recommended steps / CFG / sampler below."}),
                 "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True,
                                       "default": "cinematic portrait of a woman in a neon-lit rainy street, 35mm photo, detailed skin"}),
                 "negative": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": "",
                                         "tooltip": "Leave empty for distilled/turbo models (CFG 1): the negative is zeroed out."}),
                 "seed": ("INT", {"default": 42, "min": 0, "max": 0xffffffffffffffff, "control_after_generate": "fixed",
                                  "tooltip": "Fixed by default so tweaking the merge does not re-render the A / B previews."}),
-                "steps": ("INT", {"default": 8, "min": 1, "max": 200}),
-                "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 30.0, "step": 0.1, "round": 0.01}),
+                "steps": ("INT", {"default": 8, "min": 1, "max": 200, "tooltip": "Preview sampling steps (filled in from the architecture)."}),
+                "cfg": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 30.0, "step": 0.1, "round": 0.01,
+                                  "tooltip": "1.0 for turbo / distilled models. Higher only for base models."}),
                 "sampler": (P.SAMPLERS, {"default": "euler"}),
                 "scheduler": (P.SCHEDULERS, {"default": "simple"}),
                 "width": ("INT", {"default": 1024, "min": 256, "max": MAX_RES, "step": 16}),
@@ -72,7 +74,12 @@ class SatoDiveStudioSetup:
                 "clip": ("CLIP", {"tooltip": "From the native Load CLIP node (set its type for the architecture)."}),
                 "vae": ("VAE", {"tooltip": "From the native Load VAE node."}),
                 "reference_image": ("IMAGE", {"tooltip": "Optional: edit / reference image for Qwen-Image 2.1, Klein and Krea2 previews."}),
-                "match_reference_size": ("BOOLEAN", {"default": True}),
+                "match_reference_size": ("BOOLEAN", {"default": True,
+                                         "tooltip": "Edit models: render the preview at the reference image's size (recommended)."}),
+                "isolated_previews": ("BOOLEAN", {"default": True,
+                                      "tooltip": "ON (recommended): the model is reloaded before every preview so each LoRA node "
+                                                 "shows exactly its own LoRA - previews can never leak into each other. "
+                                                 "Turn OFF for faster previews if you have lots of VRAM."}),
             },
         }
 
@@ -82,7 +89,8 @@ class SatoDiveStudioSetup:
     CATEGORY = CATEGORY
 
     def setup(self, model, architecture, prompt, negative, seed, steps, cfg, sampler, scheduler,
-              width, height, shift, clip=None, vae=None, reference_image=None, match_reference_size=True):
+              width, height, shift, clip=None, vae=None, reference_image=None, match_reference_size=True,
+              isolated_previews=True):
         preset = A.get_preset(architecture)
         ok, cls_name = A.arch_matches_model(preset, model)
         warnings = []
@@ -96,6 +104,7 @@ class SatoDiveStudioSetup:
             prompt=prompt, negative=negative, seed=seed, steps=steps, cfg=cfg, sampler=sampler,
             scheduler=scheduler, width=width, height=height, shift=shift,
             reference_image=reference_image, match_reference_size=match_reference_size,
+            isolate=isolated_previews,
         )
         ui = {"sato_setup": [{"arch": architecture, "model_class": cls_name, "warnings": warnings,
                               "has_clip": clip is not None, "has_vae": vae is not None,
@@ -112,6 +121,7 @@ PREVIEW_SLOT = ["LoRA", "Base | LoRA", "off"]
 
 class SatoDiveLoRASlotA:
     SLOT = "A"
+    DEPRECATED = True
     DESCRIPTION = "Load a LoRA, inspect it, and optionally render a preview with the models from the Studio Setup."
 
     @classmethod
@@ -134,36 +144,47 @@ class SatoDiveLoRASlotA:
     OUTPUT_NODE = True
 
     def run(self, pipe, lora_name, strength_model, strength_clip, preview):
-        path, sd, meta = core.load_lora_file(lora_name)
-        info = dict(core.inspect_lora_file(lora_name, pipe["arch"]))
-        model, clip = pipe["model"], pipe.get("clip")
+        return run_slot(pipe, lora_name, strength_model, strength_clip, preview, self.SLOT)
 
-        matched, unmatched = core.count_matches(sd, core.build_key_map(model, clip), core.build_shape_lookup(model, clip))
-        info["matched"] = matched
-        info["unmatched"] = unmatched
-        info["slot"] = self.SLOT
-        if matched == 0:
-            log.warning("[SatoDive] LoRA %s: no keys matched the connected model — wrong architecture?", lora_name)
 
-        m2, c2 = comfy.sd.load_lora_for_models(model, clip, sd, strength_model, strength_clip if clip is not None else 0.0)
-        if clip is None:
-            c2 = None
+def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A"):
+    """Shared by the LoRA Slot nodes. preview accepts the new labels and the v1 values."""
+    mode = "off" if preview.lower().startswith("off") else ("both" if "base" in preview.lower() else "lora")
+    path, sd, meta = core.load_lora_file(lora_name)
+    info = dict(core.inspect_lora_file(lora_name, pipe["arch"]))
+    model, clip = pipe["model"], pipe.get("clip")
 
-        bundle = core.SatoLoRA(lora_name, sd, meta, path=path, arch=pipe["arch"],
-                               strength_model=strength_model, strength_clip=strength_clip, info=info)
+    matched, unmatched = core.count_matches(sd, core.build_key_map(model, clip), core.build_shape_lookup(model, clip))
+    info["matched"] = matched
+    info["unmatched"] = unmatched
+    info["slot"] = letter
+    if matched == 0:
+        log.warning("[SatoDive] LoRA %s: no keys matched the connected model - wrong architecture?", lora_name)
 
-        img = P.blank()
-        ui = {}
-        if preview != "off":
-            lora_img = P.render(pipe, m2, c2 if c2 is not None else clip)
-            if preview == "Base | LoRA":
-                base_img = P.render(pipe, model, clip)
-                img = P.hstack([P.label_image(base_img, "BASE"), P.label_image(lora_img, self.SLOT)])
-            else:
-                img = lora_img
-            ui = _preview_ui(img, "SatoDive_slot{}".format(self.SLOT))
-        ui["sato_info"] = [info]
-        return {"ui": ui, "result": (bundle, m2, c2, img)}
+    m2, c2 = comfy.sd.load_lora_for_models(model, clip, sd, strength_model, strength_clip if clip is not None else 0.0)
+    if clip is None:
+        c2 = None
+    info["patched"] = P.patched_count(model, m2)
+    cp, c2p = getattr(clip, "patcher", None), getattr(c2, "patcher", None)
+    info["patched_te"] = P.patched_count(cp, c2p) if (cp is not None and c2p is not None) else 0
+    info["strength"] = [strength_model, strength_clip]
+
+    bundle = core.SatoLoRA(lora_name, sd, meta, path=path, arch=pipe["arch"],
+                           strength_model=strength_model, strength_clip=strength_clip, info=info)
+
+    img = P.blank()
+    ui = {}
+    if mode != "off":
+        lora_img = P.render(pipe, m2, c2 if c2 is not None else clip)
+        if mode == "both":
+            base_img = P.render(pipe, model, clip)
+            img = P.hstack([P.label_image(base_img, "BASE"), P.label_image(lora_img, letter)])
+        else:
+            img = lora_img
+        ui = _preview_ui(img, "SatoDive_slot{}".format(letter))
+        info["previewed"] = True
+    ui["sato_info"] = [info]
+    return {"ui": ui, "result": (bundle, m2, c2, img)}
 
 
 class SatoDiveLoRASlotB(SatoDiveLoRASlotA):
@@ -178,6 +199,7 @@ PREVIEW_MERGE = ["Merged", "A | B | Merged", "Base | Merged", "off"]
 
 
 class SatoDiveLoRAMergeStudio:
+    DEPRECATED = True
     DESCRIPTION = ("Blend LoRA A and LoRA B with global + per-block weights detected from both LoRAs, "
                    "preview the result and save it as a new LoRA.")
 
@@ -326,7 +348,7 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "SatoDiveLoRAStudioSetup": "① LoRA Studio Setup - SatoDive",
-    "SatoDiveLoRASlotA": "② LoRA Slot A - SatoDive",
-    "SatoDiveLoRASlotB": "③ LoRA Slot B - SatoDive",
-    "SatoDiveLoRAMergeStudio": "④ LoRA Merge Studio - SatoDive",
+    "SatoDiveLoRASlotA": "LoRA Slot A (legacy) - SatoDive",
+    "SatoDiveLoRASlotB": "LoRA Slot B (legacy) - SatoDive",
+    "SatoDiveLoRAMergeStudio": "LoRA Merge Studio 2-LoRA (legacy) - SatoDive",
 }

@@ -1,59 +1,72 @@
-# LoRA Merge Studio - SatoDive
+# LoRA Merge Studio - SatoDive  (v2)
 
-A ComfyUI node pack for inspecting, previewing and merging two LoRAs, then saving the result as a new LoRA. Everything happens inside ComfyUI.
+A ComfyUI node pack for inspecting, previewing and merging LoRAs. Preview every LoRA on its own, mix **2 to 10 LoRAs**, and save the result as a brand-new LoRA.
 
-![screenshot](docs/screenshot.png)
+![studio](docs/screenshot.png)
 
-## The four nodes
+## What's new in v2
+
+* **Every LoRA slot shows its own LoRA.** Before each preview the model is reloaded (`isolated_previews`, on by default). That way no slot can show the base model or another slot's LoRA, whatever your GPU/VRAM mode. Each slot also shows **Applied ✓ N weights**, so you can see that the LoRA really changes the model.
+* **Merge any number of LoRAs.** Connect a LoRA Slot to the Merge Studio and a new `lora_…` input appears, up to 10.
+* **Plain-language help.** The merge methods have names that say what they do. A guide card explains the method you picked ("👉 Want MORE style change? Pick this…"), and every setting has a tooltip.
+* **Mixer with Mute / Solo** for each LoRA, plus **per-block sliders per LoRA**. Block presets include *Composition*, *Style & detail*, *Fade in/out* and *No text-enc.*
+* **Civitai info dialog**, like Power LoRA Loader's ⓘ: pictures and videos, base model, trigger words (click **⊕** to add one to the prompt), tags, creator and stats. You can also save your own **name, strength range and notes** for each LoRA.
+* **🔎 LoRA browser:** a picture gallery with search, an architecture filter and an NSFW blur toggle. One button fetches Civitai info for all your LoRAs.
+* **Presets checked against the official ComfyUI templates** (ComfyUI v0.38). Qwen-Image 2.1 is now 25 steps / CFG 1. There are new presets for **Z-Image Base** and **Flux.2 Klein 9B Base**.
+* **7 ready workflows** with colored groups and a guide note beside every step.
+
+![info](docs/info_dialog.jpg)
+
+## The nodes
 
 | Node | What it does |
 |---|---|
-| **① LoRA Studio Setup - SatoDive** | Connect your **native** `Load Diffusion Model`, `Load CLIP` and `Load VAE` nodes here and pick the **architecture**. Picking one fills in the recommended steps, CFG, sampler, scheduler, size and shift, and you can still change any of them. A card lists the files and the CLIPLoader type to use, and warns you if the UNET you loaded is a different model class. There's an optional reference image input for edit models. |
-| **② LoRA Slot A / ③ LoRA Slot B - SatoDive** | Load a LoRA and see its info card: rank, alpha, size, key format (kohya / diffusers / comfy), detected architecture, text-encoder modules and trigger words (click one to copy it). Preview is optional: set `preview` to `LoRA` or `Base \| LoRA`, then press **▶ Run this LoRA preview**. That queues only this node, and the image shows up inside it. |
-| **④ LoRA Merge Studio - SatoDive** | Merge method, global A/B weights, and **per-block A/B sliders detected from both LoRAs**. It has presets (Flat, 50/50, A only, B only, Ramp A→B, Ramp B→A, Swap, TE off). **▶ Preview merge** renders `Merged`, `A \| B \| Merged` or `Base \| Merged` inside the node. **💾 Merge & Save LoRA** writes `models/loras/SatoDive/<name>_###.safetensors`. |
+| **① LoRA Studio Setup** | Connect the native *Load Diffusion Model*, *Load CLIP* and *Load VAE* nodes, then pick the architecture. Steps, CFG, sampler and shift are filled in from the official templates. It warns you if the loaded model doesn't match. There's an optional reference image for edit models. |
+| **② LoRA Slot** (add as many as you want) | One LoRA each, shown on a card: picture, rank, size, text-encoder part, applied weights and trigger words. **▶ Preview this LoRA** runs only this node. You can choose *Before / after* to see the base model next to the LoRA. **ⓘ Info** opens the Civitai dialog and **🔎 Browse** opens the gallery. |
+| **④ LoRA Merge Studio** | Method, mixer, per-block sliders, previews (*Merged*, *Compare every LoRA + merged*, *Before/after*), and **💾 Merge & Save LoRA**, which writes `models/loras/SatoDive/<name>_###.safetensors` and never overwrites. Its `merged_lora` output can feed another Merge Studio. |
 
-The Merge Studio also outputs the merged LoRA (`merged_lora`). You can feed that into another Merge Studio to merge 3 or more LoRAs. It also outputs the patched `MODEL`/`CLIP`, so you can keep going in a normal workflow.
+The old *Slot A / Slot B / 2-LoRA Merge Studio* nodes still load in v1 workflows. They are marked legacy and hidden from search.
+
+## Which merge method?
+
+| Method | Use it when |
+|---|---|
+| **Blend - keep everything (exact)** | Default. Every LoRA keeps its full power, like stacking them in a workflow. |
+| **Blend - smaller file (SVD)** | You want a smaller file to share. Look at "kept %": above ~95% looks the same. |
+| **Smart blend - fix conflicts (TIES)** | The mix looks muddy, washed out, or like the LoRAs are fighting. |
+| **Bold mix - stronger style (DARE-TIES)** | You want **more style change** or a punchier blend. Try keep_ratio 0.3-0.6. |
+| **Soft mix - gentle blend (DARE)** | You want a subtle, painterly mix of styles. |
+| **Strongest wins - max impact** | The strongest features of each LoRA should dominate. |
+
+**Per-block tip:** early blocks roughly shape layout, pose and composition, and late blocks shape colors, textures and fine style. For the layout of one LoRA and the look of another, set **Composition** on one tab and **Style & detail** on the other.
 
 ## Architectures
 
-| Preset | CLIPLoader type | Defaults |
+| Preset | CLIPLoader type | Settings |
 |---|---|---|
-| **Krea2 (Turbo)** | `krea2` (Qwen3-VL 4B) | 8 steps, CFG 1, euler/simple; reference image supported |
-| **Krea2 Raw (Base)** | `krea2` | 30 steps, CFG 4, euler/simple |
-| **Z-Image Turbo** | `lumina2` (Qwen3 4B) | 8 steps, CFG 1, res_multistep/simple, shift 3 |
-| **Flux.2 Klein 9B** | `flux2` (Qwen3 8B) | 4 steps, CFG 1, Flux2 schedule; reference image = edit |
-| **Qwen-Image 2.1 (Edit)** | `qwen_image` (Qwen3-VL 8B) | 30 steps, CFG 4; uses the native Qwen-Image 2.1 edit encoder with your reference image |
-| **Auto-detect / Other** | whatever matches | generic; blocks detected automatically |
+| Krea2 (Turbo) | `krea2` | 8 steps, CFG 1, euler/simple (official) |
+| Krea2 Raw (Base) | `krea2` | 30 steps, CFG 4 (starting point, no official template yet) |
+| Z-Image Turbo | `lumina2` | 8 steps, CFG 1, res_multistep, shift 3 (official) |
+| Z-Image Base | `lumina2` | 25 steps, CFG 4, res_multistep, shift 3 (official) |
+| Flux.2 Klein 9B | `flux2` | 4 steps, CFG 1, Flux2 schedule (official) |
+| Flux.2 Klein 9B Base | `flux2` | 20 steps, CFG 5, Flux2 schedule (official) |
+| Qwen-Image 2.1 (Edit) | `qwen_image` | 25 steps, CFG 1, euler/simple. Native 2.1 edit encoder (official) |
+| Auto-detect / Other | any | generic |
 
-The UNET, text encoder and VAE always come from ComfyUI's own loaders, so you can swap any of them by hand. The presets only set the preview defaults, the hints, and the block layout used for the sliders. The Krea2 Raw and Qwen-Image 2.1 step/CFG values are starting points. Adjust them in the Setup node if your checkpoint prefers other settings.
+LoRAs are matched to the model through ComfyUI's own LoRA key maps. So kohya, diffusers/PEFT and comfy-format LoRAs can be mixed freely, including LoRAs that target fused qkv / gate_up weights.
 
-## Merge methods
+## Civitai
 
-* **add (lossless concat)**: an exact `wA·A + wB·B`. The rank is A+B, and nothing is approximated.
-* **svd (add + resize rank)**: the same sum, compressed to `rank` with an exact low-rank SVD. `0` = auto, which keeps the larger LoRA's rank on each weight. The report shows the % of energy kept.
-* **ties / dare_ties / dare_linear / magnitude**: conflict-aware merges. They apply where both LoRAs touch the same weight, and the result is re-factorised to a LoRA. `density` controls how much is kept.
-
-Other options:
-
-* `use_slot_strengths` multiplies in the strengths set on the Slot nodes, so the merge matches what you saw in their previews.
-* `text_encoder` can be `merge`, `A only`, `B only` or `drop`.
-* `merged_scale` is baked into the saved file.
-* `key_style` is `comfy` (native) or `kohya` (`lora_unet_*`, for other tools).
-
-### How the merge works
-
-Both LoRAs are resolved through **ComfyUI's own LoRA key maps**, so the merge happens in model-weight space. That means you can merge a kohya LoRA with a diffusers/PEFT LoRA for the same model, including LoRAs that address fused weights (qkv / gate_up) through slices. The saved LoRA loads with the normal `Load LoRA` node, and its metadata stores the recipe and the combined trigger words.
+* The lookup uses the file's SHA256, which is computed once and then cached. The info is cached too, and pictures load through ComfyUI and are stored on disk. Everything lives in `ComfyUI/user/satodive_lora_merge/`, never next to your models.
+* Images or info saved next to a LoRA by other tools are used too: `name.preview.png`, `name.png`, `name.civitai.info`.
+* A Civitai API key is optional (only needed for login-restricted models). You can set it in the info dialog or with the `CIVITAI_API_KEY` environment variable.
 
 ## Install
 
 1. Unzip into `ComfyUI/custom_nodes/` so you get `ComfyUI/custom_nodes/ComfyUI-LoRA-Merge-SatoDive/`.
 2. Restart ComfyUI and refresh the browser.
-3. Load a workflow from `example_workflows/` (Krea2, Qwen-Image 2.1 Edit, Z-Image Turbo, Klein 9B), or add the nodes from **SatoDive/LoRA Merge**.
+3. Open a workflow from `example_workflows/` and pick your own model and LoRA files.
 
-No extra Python dependencies. It needs a recent ComfyUI (with Krea2 / Qwen-Image 2.1 / Flux2 support).
+No extra Python packages are needed. It needs a recent ComfyUI with Krea2, Qwen-Image 2.1 and Flux2 support (tested on v0.38.0, frontend 1.53.10).
 
-## Tips
-
-* Leave the Setup `seed` on **fixed**. Then when you tweak the merge sliders, ComfyUI re-uses the cached A/B previews and only re-renders the merge.
-* To change all blocks in a group at once, drag the bold section slider. Double-click a value to reset it to 1.0.
-* If a Slot card warns about the architecture, the LoRA was probably trained for another model.
+![workflow](docs/workflow.jpg)

@@ -267,6 +267,21 @@ def groups_payload(group_counts_a, group_counts_b, arch_name):
     return out
 
 
+def groups_payload_many(counts_list, arch_name):
+    """Ordered slider groups for any number of LoRAs: counts[i] = modules LoRA i has in the group."""
+    preset = A.get_preset(arch_name)
+    allg = set()
+    for c in counts_list:
+        allg |= set(c)
+    out = []
+    for g in sorted(allg, key=lambda g: A.group_sort_key(g, preset)):
+        section, label = A.group_label(g, preset)
+        counts = [int(c.get(g, 0)) for c in counts_list]
+        out.append({"id": g, "section": section, "label": label, "counts": counts,
+                    "a": counts[0] if counts else 0, "b": counts[1] if len(counts) > 1 else 0})
+    return out
+
+
 # --------------------------------------------------------------------------------------
 # Resolving a LoRA against a model -> weight deltas
 # --------------------------------------------------------------------------------------
@@ -501,50 +516,75 @@ def _ties(deltas, density, drop_random=False, gen=None, use_sign=True):
     return num / cnt
 
 
-def merge(deltas_a, deltas_b, preset, weight_a, weight_b, wfun_a, wfun_b, method,
-          rank=0, density=0.5, seed=0, te_mode="merge", merged_scale=1.0, device=None,
-          rank_a=0, rank_b=0):
-    """wfun_a / wfun_b: group -> multiplier (per-block sliders x slot strengths).
-    Returns ({weight_key: Delta}, report)."""
+def _method_key(method):
+    """Accept the internal names, the friendly UI labels and old saved values."""
+    m = (method or "").lower()
+    if "ties" in m and "dare" in m:
+        return "dare_ties"
+    if "bold" in m:
+        return "dare_ties"
+    if "dare" in m or "soft" in m:
+        return "dare_linear"
+    if "ties" in m or "smart" in m:
+        return "ties"
+    if "magnitude" in m or "strongest" in m:
+        return "magnitude"
+    if "svd" in m or "smaller" in m:
+        return "svd"
+    return "add"
+
+
+def merge_many(deltas_list, preset, wfuns, method, rank=0, density=0.5, seed=0, te_mode="merge",
+               merged_scale=1.0, device=None, ranks=None):
+    """Merge any number of resolved LoRAs.
+
+    deltas_list: [ {weight_key: [Delta, ...]}, ... ] one dict per LoRA
+    wfuns:       [ group -> multiplier ] one per LoRA (global weight x per-block slider x slot strength)
+    Returns ({weight_key: Delta}, report).
+    """
     device = device or comfy.model_management.get_torch_device()
-    keys = list(dict.fromkeys(list(deltas_a.keys()) + list(deltas_b.keys())))
+    mkey = _method_key(method)
+    n = len(deltas_list)
+    keys = list(dict.fromkeys(k for d in deltas_list for k in d.keys()))
     out = {}
     kept_vals = []
     gen = torch.Generator(device="cpu").manual_seed(int(seed))
-    auto_rank = max(rank_a, rank_b, 4)
+    ranks = ranks or [0] * n
+    auto_rank = max(ranks + [4])
     pbar = comfy.utils.ProgressBar(max(1, len(keys)))
 
-    for i, key in enumerate(keys):
+    for key in keys:
         comfy.model_management.throw_exception_if_processing_interrupted()
         g = A.group_of_model_key(key, preset)
-        wa = weight_a * float(wfun_a(g))
-        wb = weight_b * float(wfun_b(g))
+        ws = [float(f(g)) for f in wfuns]
         if g == A.TE_GROUP:
             if te_mode == "drop":
-                wa = wb = 0.0
-            elif te_mode == "A only":
-                wb = 0.0
+                ws = [0.0] * n
+            elif te_mode in ("first only", "A only"):
+                ws = [w if i == 0 else 0.0 for i, w in enumerate(ws)]
             elif te_mode == "B only":
-                wa = 0.0
-        ta = [d for d in deltas_a.get(key, [])] if wa != 0 else []
-        tb = [d for d in deltas_b.get(key, [])] if wb != 0 else []
-        if not ta and not tb:
+                ws = [w if i == 1 else 0.0 for i, w in enumerate(ws)]
+        terms = []  # (lora index, weight, [Delta])
+        for i, d in enumerate(deltas_list):
+            if ws[i] != 0 and key in d:
+                terms.append((i, ws[i], d[key]))
+        if not terms:
             pbar.update(1)
             continue
-        shape = (ta or tb)[0].shape
-        all_lowrank = all(d.lowrank for d in ta + tb) and len(shape) >= 2
-        both = bool(ta) and bool(tb)
-        dense_method = method in ("ties", "dare_ties", "dare_linear", "magnitude (max |w|)") and both
+        shape = terms[0][2][0].shape
+        all_lowrank = all(x.lowrank for _, _, ds in terms for x in ds) and len(shape) >= 2
+        several = len(terms) > 1
+        dense_method = mkey in ("ties", "dare_ties", "dare_linear", "magnitude") and several
 
         if all_lowrank and not dense_method:
-            ups = [d.up.to(device) * w for d, w in [(d, wa) for d in ta] + [(d, wb) for d in tb]]
-            downs = [d.down.to(device) for d in ta + tb]
+            ups = [x.up.to(device) * w for _, w, ds in terms for x in ds]
+            downs = [x.down.to(device) for _, _, ds in terms for x in ds]
             U = torch.cat(ups, dim=1) * merged_scale
             D = torch.cat(downs, dim=0)
-            # auto rank is per weight: keep the capacity of the bigger LoRA at this weight
+            # auto rank is per weight: keep the capacity of the biggest LoRA at this weight
             # (a fused qkv hit by three rank-r slices really is rank 3r)
-            key_rank = rank if rank > 0 else max(sum(d.rank for d in ta), sum(d.rank for d in tb), 1)
-            if method.startswith("svd") or (method != "add (lossless concat)" and U.shape[1] > key_rank):
+            key_rank = rank if rank > 0 else max(max(sum(x.rank for x in ds) for _, _, ds in terms), 1)
+            if mkey == "svd" or (mkey != "add" and U.shape[1] > key_rank):
                 U, D, kept = lowrank_resize(U, D, key_rank)
                 kept_vals.append(kept)
             out[key] = Delta(shape, up=U.cpu(), down=D.cpu())
@@ -552,27 +592,27 @@ def merge(deltas_a, deltas_b, preset, weight_a, weight_b, wfun_a, wfun_b, method
             continue
 
         # ---- dense path ----
-        da = sum(d.to_dense(device) for d in ta) * wa if ta else None
-        db = sum(d.to_dense(device) for d in tb) * wb if tb else None
-        if da is not None and db is not None:
-            if method == "ties":
-                M = _ties([da, db], density)
-            elif method == "dare_ties":
-                M = _ties([da, db], density, drop_random=True, gen=gen)
-            elif method == "dare_linear":
-                M = _ties([da, db], density, drop_random=True, gen=gen, use_sign=False)
-            elif method == "magnitude (max |w|)":
-                M = torch.where(da.abs() >= db.abs(), da, db)
+        dense = [sum(x.to_dense(device) for x in ds) * w for _, w, ds in terms]
+        if several:
+            if mkey == "ties":
+                M = _ties(dense, density)
+            elif mkey == "dare_ties":
+                M = _ties(dense, density, drop_random=True, gen=gen)
+            elif mkey == "dare_linear":
+                M = _ties(dense, density, drop_random=True, gen=gen, use_sign=False)
+            elif mkey == "magnitude":
+                stack = torch.stack(dense)
+                idx = stack.abs().argmax(dim=0, keepdim=True)
+                M = torch.gather(stack, 0, idx)[0]
             else:
-                M = da + db
+                M = sum(dense)
         else:
-            M = da if da is not None else db
+            M = dense[0]
         M = M * merged_scale
 
         if M.ndim >= 2:
-            ra_k = sum(d.rank if d.lowrank else auto_rank for d in ta)
-            rb_k = sum(d.rank if d.lowrank else auto_rank for d in tb)
-            r = rank if rank > 0 else ((ra_k + rb_k) if dense_method else max(ra_k, rb_k))
+            rk = [sum(x.rank if x.lowrank else auto_rank for x in ds) for _, _, ds in terms]
+            r = rank if rank > 0 else (sum(rk) if dense_method else max(rk))
             U, D, kept = dense_to_lowrank(M.float(), max(1, r))
             kept_vals.append(kept)
             out[key] = Delta(shape, up=U.cpu(), down=D.cpu())
@@ -580,14 +620,25 @@ def merge(deltas_a, deltas_b, preset, weight_a, weight_b, wfun_a, wfun_b, method
             out[key] = Delta(shape, dense=M.cpu())
         pbar.update(1)
 
-    ranks = sorted({d.rank for d in out.values() if d.lowrank})
+    out_ranks = sorted({d.rank for d in out.values() if d.lowrank})
     report = {
         "modules": len(out),
-        "ranks": ranks,
+        "ranks": out_ranks,
         "energy_kept": round(100.0 * sum(kept_vals) / len(kept_vals), 2) if kept_vals else 100.0,
         "resized": len(kept_vals),
+        "method": mkey,
     }
     return out, report
+
+
+def merge(deltas_a, deltas_b, preset, weight_a, weight_b, wfun_a, wfun_b, method,
+          rank=0, density=0.5, seed=0, te_mode="merge", merged_scale=1.0, device=None,
+          rank_a=0, rank_b=0):
+    """Two-LoRA wrapper kept for the v1 Merge Studio node and the tests."""
+    return merge_many([deltas_a, deltas_b], preset,
+                      [lambda g: weight_a * float(wfun_a(g)), lambda g: weight_b * float(wfun_b(g))],
+                      method, rank=rank, density=density, seed=seed, te_mode=te_mode,
+                      merged_scale=merged_scale, device=device, ranks=[rank_a, rank_b])
 
 
 # --------------------------------------------------------------------------------------

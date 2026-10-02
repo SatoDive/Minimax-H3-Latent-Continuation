@@ -150,11 +150,40 @@ def empty_latent(model, width, height):
     return comfy.sample.fix_empty_latent_channels(model, lat)
 
 
+def isolate(model, clip):
+    """Unload the base model (and every LoRA-patched clone of it) before a preview.
+
+    Each preview then starts from freshly loaded weights with exactly this LoRA applied,
+    so the previews of several LoRA nodes can never show each other's (or the base) weights,
+    whatever the VRAM / dynamic loading mode is.
+    """
+    mm = comfy.model_management
+    for patcher in (model, getattr(clip, "patcher", None)):
+        if patcher is None:
+            continue
+        try:
+            mm.unload_model_and_clones(patcher, unload_additional_models=True)
+        except Exception as e:
+            log.warning("[SatoDive] could not isolate preview model: %s", e)
+    mm.soft_empty_cache()
+
+
+def patched_count(base, patched):
+    """How many weights a LoRA really patches on this model (shown in the node)."""
+    try:
+        return max(0, len(patched.patches) - len(base.patches))
+    except Exception:
+        return -1
+
+
 def render(pipe, model, clip, seed_offset=0):
     """Render one preview image (1,H,W,3) with the given (already LoRA-patched) model + clip."""
     vae = pipe.get("vae")
     if clip is None or vae is None:
-        raise RuntimeError("SatoDive preview needs CLIP and VAE connected to the Studio Setup node.")
+        raise RuntimeError("The preview needs CLIP and VAE connected to the LoRA Studio Setup node "
+                           "(or set preview to Off).")
+    if pipe.get("isolate", True):
+        isolate(model, clip)
 
     steps = int(pipe["steps"])
     cfg = float(pipe["cfg"])
@@ -219,7 +248,13 @@ def label_image(img, text, color_key=None):
         tw, th = d.textbbox((0, 0), text, font=font)[2:]
     except Exception:
         tw, th = len(text) * size // 2, size
-    col = _TAG_COLORS.get(color_key or text, (167, 139, 250))
+    key = color_key or text
+    if key in _TAG_COLORS:
+        col = _TAG_COLORS[key]
+    elif len(key) == 1 and key in LETTERS:
+        col = SLOT_COLORS[LETTERS.index(key)]
+    else:
+        col = (167, 139, 250)
     d.rounded_rectangle([pad, pad, pad + tw + pad * 2, pad + th + pad * 1.4], radius=pad,
                         fill=(15, 17, 26, 200), outline=col + (255,), width=max(2, size // 8))
     d.text((pad * 2, pad * 1.2), text, fill=col + (255,), font=font)
@@ -242,6 +277,27 @@ def hstack(images):
             parts.append(gap)
         parts.append(i)
     return torch.cat(parts, dim=2)
+
+
+def grid(images, max_cols=3):
+    """Labelled images -> one picture, rows of up to max_cols."""
+    if len(images) <= max_cols:
+        return hstack(images)
+    rows = [hstack(images[i:i + max_cols]) for i in range(0, len(images), max_cols)]
+    w = max(r.shape[2] for r in rows)
+    padded = []
+    for n, r in enumerate(rows):
+        if r.shape[2] < w:
+            r = torch.cat([r, torch.full((1, r.shape[1], w - r.shape[2], 3), 0.06)], dim=2)
+        if n:
+            padded.append(torch.full((1, max(4, r.shape[1] // 128), w, 3), 0.06))
+        padded.append(r)
+    return torch.cat(padded, dim=1)
+
+
+SLOT_COLORS = [(34, 211, 238), (244, 114, 182), (250, 204, 21), (74, 222, 128), (251, 146, 60),
+               (96, 165, 250), (232, 121, 249), (45, 212, 191), (248, 113, 113), (163, 230, 53)]
+LETTERS = "ABCDEFGHIJ"
 
 
 def blank(w=64, h=64):

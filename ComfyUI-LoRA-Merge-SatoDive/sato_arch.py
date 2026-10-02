@@ -12,19 +12,21 @@ import re
 
 AUTO = "Auto-detect / Other"
 
+# Settings come from the official ComfyUI workflow templates (comfyui-workflow-templates 0.11.74)
+# unless marked as a starting point.
 # NOTE: the order of "containers" matters: longer / more specific names first.
 ARCH_PRESETS = {
     "Krea2 (Turbo)": {
-        "key": "krea2",
+        "key": "krea2", "family": "krea2",
         "model_classes": ["Krea2"],
         "clip_type": "krea2",
-        "unet_hint": "krea2_turbo_*.safetensors  (models/diffusion_models)",
+        "unet_hint": "krea2_turbo_fp8_scaled.safetensors  (models/diffusion_models)",
         "te_hint": "qwen3vl_4b_fp8_scaled.safetensors  (CLIPLoader type: krea2)",
         "vae_hint": "qwen_image_vae.safetensors",
         "steps": 8, "cfg": 1.0, "sampler": "euler", "scheduler": "simple",
         "width": 1024, "height": 1024, "shift": 0.0,
         "edit": "reference_latents",
-        "notes": "Distilled turbo model: 8 steps, CFG 1. Supports a reference image (style / edit LoRAs).",
+        "notes": "Official Krea-2 Turbo settings: 8 steps, CFG 1, euler / simple. Leave the negative prompt empty. A reference image works with style / edit LoRAs.",
         "containers": [
             ("txtfusion.layerwise_blocks", "Text-Fusion L"),
             ("txtfusion.refiner_blocks", "Text-Fusion R"),
@@ -37,16 +39,16 @@ ARCH_PRESETS = {
         ],
     },
     "Krea2 Raw (Base)": {
-        "key": "krea2_raw",
+        "key": "krea2_raw", "family": "krea2",
         "model_classes": ["Krea2"],
         "clip_type": "krea2",
-        "unet_hint": "krea2_raw_*.safetensors  (models/diffusion_models)",
+        "unet_hint": "krea2 raw / base weights  (models/diffusion_models)",
         "te_hint": "qwen3vl_4b_fp8_scaled.safetensors  (CLIPLoader type: krea2)",
         "vae_hint": "qwen_image_vae.safetensors",
         "steps": 30, "cfg": 4.0, "sampler": "euler", "scheduler": "simple",
         "width": 1024, "height": 1024, "shift": 0.0,
         "edit": "reference_latents",
-        "notes": "Undistilled raw/base weights: more steps and real CFG. Use a negative prompt.",
+        "notes": "Undistilled raw weights need more steps and real CFG (no official template yet - 30 steps / CFG 4 is a starting point). A negative prompt helps here.",
         "containers": [
             ("txtfusion.layerwise_blocks", "Text-Fusion L"),
             ("txtfusion.refiner_blocks", "Text-Fusion R"),
@@ -59,7 +61,7 @@ ARCH_PRESETS = {
         ],
     },
     "Z-Image Turbo": {
-        "key": "zimage",
+        "key": "zimage", "family": "zimage",
         "model_classes": ["Lumina2", "ZImage"],
         "clip_type": "lumina2",
         "unet_hint": "z_image_turbo_bf16.safetensors  (models/diffusion_models)",
@@ -68,7 +70,25 @@ ARCH_PRESETS = {
         "steps": 8, "cfg": 1.0, "sampler": "res_multistep", "scheduler": "simple",
         "width": 1024, "height": 1024, "shift": 3.0,
         "edit": None,
-        "notes": "8 steps, CFG 1, res_multistep + simple, AuraFlow shift 3.",
+        "notes": "Official Z-Image Turbo settings: 8 steps, CFG 1, res_multistep / simple, shift 3. Leave the negative prompt empty.",
+        "containers": [
+            ("context_refiner", "Context Refiner"),
+            ("noise_refiner", "Noise Refiner"),
+            ("layers", "Layer"),
+        ],
+        "aliases": [],
+    },
+    "Z-Image Base": {
+        "key": "zimage_base", "family": "zimage",
+        "model_classes": ["Lumina2", "ZImage"],
+        "clip_type": "lumina2",
+        "unet_hint": "z_image_bf16.safetensors  (models/diffusion_models)",
+        "te_hint": "qwen_3_4b.safetensors  (CLIPLoader type: lumina2)",
+        "vae_hint": "ae.safetensors  (Flux VAE)",
+        "steps": 25, "cfg": 4.0, "sampler": "res_multistep", "scheduler": "simple",
+        "width": 1024, "height": 1024, "shift": 3.0,
+        "edit": None,
+        "notes": "Official Z-Image Base settings: 25 steps, CFG 4, res_multistep / simple, shift 3. Negative prompt supported.",
         "containers": [
             ("context_refiner", "Context Refiner"),
             ("noise_refiner", "Noise Refiner"),
@@ -77,16 +97,36 @@ ARCH_PRESETS = {
         "aliases": [],
     },
     "Flux.2 Klein 9B": {
-        "key": "klein9b",
+        "key": "klein9b", "family": "klein",
         "model_classes": ["Flux2"],
         "clip_type": "flux2",
-        "unet_hint": "flux-2-klein-9b*.safetensors  (models/diffusion_models)",
-        "te_hint": "qwen_3_8b*.safetensors  (CLIPLoader type: flux2)",
-        "vae_hint": "flux2-vae.safetensors",
+        "unet_hint": "flux-2-klein-9b-fp8.safetensors  (models/diffusion_models)",
+        "te_hint": "qwen_3_8b_fp8mixed.safetensors  (CLIPLoader type: flux2)",
+        "vae_hint": "full_encoder_small_decoder.safetensors  or  flux2-vae.safetensors",
         "steps": 4, "cfg": 1.0, "sampler": "euler", "scheduler": "flux2",
         "width": 1024, "height": 1024, "shift": 0.0,
         "edit": "reference_latents",
-        "notes": "Distilled Klein: 4 steps, CFG 1, Flux2 schedule. For Klein *base* use ~20-50 steps, CFG 4-5. Reference image = edit mode.",
+        "notes": "Official Klein 9B (distilled) settings: 4 steps, CFG 1, Flux2 schedule. A reference image switches the preview to edit mode.",
+        "containers": [
+            ("double_blocks", "Double"),
+            ("single_blocks", "Single"),
+        ],
+        "aliases": [
+            ("single_transformer_blocks", "single_blocks"),
+            ("transformer_blocks", "double_blocks"),
+        ],
+    },
+    "Flux.2 Klein 9B Base": {
+        "key": "klein9b_base", "family": "klein",
+        "model_classes": ["Flux2"],
+        "clip_type": "flux2",
+        "unet_hint": "flux-2-klein-base-9b-fp8.safetensors  (models/diffusion_models)",
+        "te_hint": "qwen_3_8b_fp8mixed.safetensors  (CLIPLoader type: flux2)",
+        "vae_hint": "full_encoder_small_decoder.safetensors  or  flux2-vae.safetensors",
+        "steps": 20, "cfg": 5.0, "sampler": "euler", "scheduler": "flux2",
+        "width": 1024, "height": 1024, "shift": 0.0,
+        "edit": "reference_latents",
+        "notes": "Official Klein 9B Base settings: 20 steps, CFG 5, Flux2 schedule. Most Klein LoRAs are trained on this base.",
         "containers": [
             ("double_blocks", "Double"),
             ("single_blocks", "Single"),
@@ -97,23 +137,23 @@ ARCH_PRESETS = {
         ],
     },
     "Qwen-Image 2.1 (Edit)": {
-        "key": "qwen21",
+        "key": "qwen21", "family": "qwen21",
         "model_classes": ["QwenImage21", "QwenImage"],
         "clip_type": "qwen_image",
-        "unet_hint": "qwen_image_2.1*.safetensors  (models/diffusion_models)",
-        "te_hint": "qwen3vl_8b*.safetensors  (CLIPLoader type: qwen_image)",
-        "vae_hint": "Qwen-Image 2.1 VAE (64-ch, x16)",
-        "steps": 30, "cfg": 4.0, "sampler": "euler", "scheduler": "simple",
+        "unet_hint": "qwen_image_2.1_int8_convrot.safetensors  (or fp8 / bf16)",
+        "te_hint": "qwen3vl_8b_int8_convrot.safetensors  (CLIPLoader type: qwen_image)",
+        "vae_hint": "qwen_image_2.1_vae_bf16.safetensors",
+        "steps": 25, "cfg": 1.0, "sampler": "euler", "scheduler": "simple",
         "width": 1024, "height": 1024, "shift": 0.0,
         "edit": "qwen21",
-        "notes": "Uses the native Qwen-Image 2.1 encoder: connect a reference image for edit previews.",
+        "notes": "Official Qwen-Image 2.1 settings: 25 steps, CFG 1, euler / simple. It does text-to-image and editing: connect a reference image to preview edits.",
         "containers": [
             ("transformer_blocks", "Block"),
         ],
         "aliases": [],
     },
     AUTO: {
-        "key": "auto",
+        "key": "auto", "family": "auto",
         "model_classes": [],
         "clip_type": "(match your model)",
         "unet_hint": "any model supported by ComfyUI",
@@ -122,7 +162,7 @@ ARCH_PRESETS = {
         "steps": 20, "cfg": 4.0, "sampler": "euler", "scheduler": "simple",
         "width": 1024, "height": 1024, "shift": 0.0,
         "edit": "reference_latents",
-        "notes": "Generic mode. Block groups are detected automatically from the LoRA keys.",
+        "notes": "Generic mode for any other model. Block groups are detected automatically from the LoRA keys.",
         "containers": [],
         "aliases": [],
     },
@@ -327,3 +367,19 @@ def arch_matches_model(preset, model):
     if not preset.get("model_classes"):
         return True, cls
     return cls in preset["model_classes"], cls
+
+
+def family_of_base_model(base):
+    """Map a Civitai / metadata base-model string to a preset family."""
+    b = (base or "").lower().replace(" ", "").replace("-", "").replace("_", "").replace(".", "")
+    if not b:
+        return None
+    if "krea" in b and "flux1" not in b:
+        return "krea2"
+    if "klein" in b:
+        return "klein"
+    if "zimage" in b:
+        return "zimage"
+    if "qwen" in b:
+        return "qwen21"
+    return "other"
