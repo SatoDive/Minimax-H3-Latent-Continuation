@@ -61,6 +61,7 @@ TIPS = {
     "precision": "fp16 is right for almost everyone. bf16 for some trainers, fp32 = double size.",
     "key_style": "comfy works in ComfyUI. kohya (lora_unet_*) is more compatible with other tools.",
     "dare_seed": "Random seed for the Bold / Soft methods. Change it to get a different variation.",
+    "add_trigger_words": "Puts the trigger words of the active LoRAs in front of the preview prompt (many style LoRAs barely show without them). Only the preview - the saved LoRA is not affected.",
 }
 
 BLOCK_HELP = ("Rough guide: early blocks shape layout, pose and composition; late blocks shape textures, "

@@ -842,6 +842,7 @@ function renderSlot(node) {
     if (mismatch) msg = `<div class="sato-msg warn">⚠ This looks like a ${esc(cv.base_model || info.detected_arch)} LoRA but the setup is ${esc(arch)}.</div>`;
     else if (run && run.matched === 0) msg = `<div class="sato-msg bad">✗ No weights matched the connected model - wrong architecture?</div>`;
     else if (!L && node.comfyClass === T.slot) msg = `<div class="sato-msg">Tip: connect <b>lora</b> to a Merge Studio input to give this slot a letter.</div>`;
+    if (run?.trigger_added?.length) msg += `<div class="sato-msg ok" title="Turn off add_trigger_words to preview without them">✚ Preview prompt got: ${esc(run.trigger_added.join(", "))}</div>`;
     if (info.satodive_recipe) msg += `<div class="sato-msg ok">✦ SatoDive merge</div>`;
     if (msg) el.appendChild(h("div", null, msg));
   } else {
@@ -1158,7 +1159,8 @@ function renderMerge(node) {
       <span class="sato-badge" title="LoRA rank of the result">rank ${esc(rk)}</span>
       <span class="sato-badge ${r.energy_kept < 90 ? "warn" : "ok"}" title="How much of the mix survived compression (100% = exact)">kept ${r.energy_kept}%</span>
       ${r.size_mb ? `<span class="sato-badge dim">${r.size_mb} MB</span>` : ""}
-      ${r.saved ? `<span class="sato-badge ok" title="${esc(r.saved)}">💾 saved ${esc(baseName(r.saved))}</span>` : ""}`;
+      ${r.saved ? `<span class="sato-badge ok" title="${esc(r.saved)}">💾 saved ${esc(baseName(r.saved))}</span>` : ""}
+      ${r.trigger_added?.length ? `<span class="sato-badge" title="added to the preview prompt">✚ ${esc(r.trigger_added.join(", "))}</span>` : ""}`;
   } else {
     rep.innerHTML = `<span class="sato-badge dim">Adjust, then ▶ Preview merge - or 💾 save</span>`;
   }

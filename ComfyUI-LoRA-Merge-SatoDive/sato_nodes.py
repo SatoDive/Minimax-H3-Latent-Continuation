@@ -11,6 +11,7 @@ import nodes
 from comfy_api.latest import io
 
 from . import sato_arch as A
+from . import sato_civitai as C
 from . import sato_help as H
 from . import sato_lora_core as core
 from . import sato_preview as P
@@ -123,7 +124,13 @@ class SatoDiveStudioSetup:
 # 2) LoRA Slot (classic node so it keeps the familiar LoRA file picker)
 # ======================================================================================
 
-def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A"):
+def _pipe_with_prompt(pipe, prompt):
+    p = core.SatoPipe(pipe)
+    p["prompt"] = prompt
+    return p
+
+
+def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A", add_trigger_words=True):
     """LoRA Slot logic: load + analyse one LoRA, optionally render its preview."""
     mode = "off" if preview.lower().startswith("off") else ("both" if "base" in preview.lower() else "lora")
     path, sd, meta = core.load_lora_file(lora_name)
@@ -154,9 +161,17 @@ def run_slot(pipe, lora_name, strength_model, strength_clip, preview, letter="A"
         img = P.label_image(P.message_image("This LoRA does not fit the loaded model", "0 weights matched - it was made for another architecture"), "NO FIT", "BAD")
         ui = _preview_ui(img, "SatoDive_slot{}".format(letter))
     elif mode != "off":
-        lora_img = P.render(pipe, m2, c2 if c2 is not None else clip)
+        rpipe = pipe
+        if add_trigger_words:
+            words = C.trigger_words(lora_name, meta)
+            prompt2, added = C.prompt_with_triggers(pipe["prompt"], words)
+            info["trigger_added"] = added
+            if added:
+                log.info("[SatoDive] preview of %s: added trigger words %s", lora_name, added)
+                rpipe = _pipe_with_prompt(pipe, prompt2)
+        lora_img = P.render(rpipe, m2, c2 if c2 is not None else clip)
         if mode == "both":
-            base_img = P.render(pipe, model, clip)
+            base_img = P.render(rpipe, model, clip)  # same prompt -> fair before / after
             img = P.hstack([P.label_image(base_img, "BASE"), P.label_image(lora_img, letter)])
         else:
             img = lora_img
@@ -183,6 +198,9 @@ class SatoDiveLoRASlot:
                 "preview": (H.PREVIEW_SLOT, {"default": H.PREVIEW_SLOT[0],
                                              "tooltip": "LoRA only: render with this LoRA. Before / after: base model next to the LoRA. "
                                                         "Off: only load + analyse (fast)."}),
+                "add_trigger_words": ("BOOLEAN", {"default": True,
+                                      "tooltip": "Put this LoRA's trigger words (from Civitai or the file) in front of the preview prompt. "
+                                                 "Many style LoRAs barely show without them."}),
             },
         }
 
@@ -194,8 +212,8 @@ class SatoDiveLoRASlot:
     CATEGORY = CATEGORY
     OUTPUT_NODE = True
 
-    def run(self, pipe, lora_name, strength_model, strength_clip, preview):
-        return run_slot(pipe, lora_name, strength_model, strength_clip, preview, "LoRA")
+    def run(self, pipe, lora_name, strength_model, strength_clip, preview, add_trigger_words=True):
+        return run_slot(pipe, lora_name, strength_model, strength_clip, preview, "LoRA", add_trigger_words)
 
 
 # ======================================================================================
@@ -243,6 +261,8 @@ class SatoDiveLoRAMergeStudioV2(io.ComfyNode):
                 io.Int.Input("dare_seed", default=0, min=0, max=0xffffffffffffffff, tooltip=T["dare_seed"], advanced=True,
                              control_after_generate=False),
                 io.String.Input("mix_settings", default="{}", tooltip="Managed by the mixer / block panel."),
+                io.Boolean.Input("add_trigger_words", default=True,
+                                 tooltip="Put the trigger words of the active LoRAs (from Civitai or the files) in front of the preview prompt."),
             ],
             outputs=[
                 SatoLoraType.Output(display_name="merged_lora", tooltip="Plug into another Merge Studio to keep mixing."),
@@ -256,7 +276,7 @@ class SatoDiveLoRAMergeStudioV2(io.ComfyNode):
     @classmethod
     def execute(cls, pipe, loras, method, overall_strength, use_slot_strengths, output_rank, keep_ratio,
                 text_encoder, preview, preview_strength, save_lora, filename, precision="fp16",
-                key_style=KEY_STYLES[0], dare_seed=0, mix_settings="{}") -> io.NodeOutput:
+                key_style=KEY_STYLES[0], dare_seed=0, mix_settings="{}", add_trigger_words=True) -> io.NodeOutput:
         model, clip = pipe["model"], pipe.get("clip")
         preset = A.get_preset(pipe.get("group_arch", pipe["arch"]))
 
@@ -325,18 +345,28 @@ class SatoDiveLoRAMergeStudioV2(io.ComfyNode):
 
         img = P.blank()
         ui = {}
+        triggers_added = []
         if not preview.lower().startswith("off"):
-            merged_img = P.render(pipe, m2, c2 if c2 is not None else clip)
+            words = {}
+            if add_trigger_words:
+                for (letter, b), u in zip(connected, used):
+                    words[letter] = C.trigger_words(b.name, b.metadata) if not b.merged else []
+            active = [w for (letter, _), u in zip(connected, used) if u["gain"] != 0 for w in words.get(letter, [])]
+            mprompt, triggers_added = C.prompt_with_triggers(pipe["prompt"], list(dict.fromkeys(active)))
+            mpipe = _pipe_with_prompt(pipe, mprompt) if triggers_added else pipe
+            merged_img = P.render(mpipe, m2, c2 if c2 is not None else clip)
             if preview.lower().startswith("compare"):
                 tiles = []
                 for (letter, b), u in zip(connected, used):
                     mi, ci = core.apply_lora(model, clip, b.sd, u["strength"][0],
-                                                           u["strength"][1] if clip is not None else 0.0)
-                    tiles.append(P.label_image(P.render(pipe, mi, ci if ci is not None else clip), letter))
+                                             u["strength"][1] if clip is not None else 0.0)
+                    lprompt, ladded = C.prompt_with_triggers(pipe["prompt"], words.get(letter, []))
+                    lpipe = _pipe_with_prompt(pipe, lprompt) if ladded else pipe
+                    tiles.append(P.label_image(P.render(lpipe, mi, ci if ci is not None else clip), letter))
                 tiles.append(P.label_image(merged_img, "MERGE"))
                 img = P.grid(tiles, max_cols=3 if len(tiles) > 4 else 4)
             elif "base" in preview.lower():
-                img = P.hstack([P.label_image(P.render(pipe, model, clip), "BASE"), P.label_image(merged_img, "MERGE")])
+                img = P.hstack([P.label_image(P.render(mpipe, model, clip), "BASE"), P.label_image(merged_img, "MERGE")])
             else:
                 img = merged_img
             ui = _preview_ui(img, "SatoDive_merge")
@@ -346,6 +376,7 @@ class SatoDiveLoRAMergeStudioV2(io.ComfyNode):
             "saved": os.path.relpath(saved_path, folder_paths.get_folder_paths("loras")[0]) if saved_path else "",
             "size_mb": merged_info.get("size_mb"),
             "patched": P.patched_count(model, m2),
+            "trigger_added": triggers_added,
         })
         ui["sato_report"] = [report]
         group_arch = pipe.get("group_arch", pipe["arch"])

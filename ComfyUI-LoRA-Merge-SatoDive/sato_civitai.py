@@ -355,3 +355,82 @@ async def fetch_media(url, session):
     with open(p + ".type", "w") as f:
         f.write(ctype)
     return p, ctype
+
+
+# --------------------------------------------------------------------------------------
+# Trigger words for the previews (used at execution time, so plain blocking HTTP)
+# --------------------------------------------------------------------------------------
+
+EXPLICIT_TRIGGER_KEYS = ("modelspec.trigger_phrase", "trigger_words", "ss_trigger_words", "activation text")
+
+
+def _get_json_sync(url, timeout=10):
+    import urllib.error
+    import urllib.request
+    headers = {"User-Agent": "ComfyUI-SatoDive-LoRA-Merge/2.0"}
+    key = api_key()
+    if key:
+        headers["Authorization"] = "Bearer " + key
+    try:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return None
+        raise
+
+
+def fetch_civitai_sync(sha):
+    version = _get_json_sync("{}/model-versions/by-hash/{}".format(API, sha))
+    if version is None:
+        return {"found": False, "fetched": time.time()}
+    model = None
+    if version.get("modelId"):
+        try:
+            model = _get_json_sync("{}/models/{}".format(API, version["modelId"]))
+        except Exception:
+            pass
+    return _simplify(version, model)
+
+
+def trigger_words(name, metadata=None, allow_network=True, limit=3):
+    """Words the LoRA was trained with: Civitai 'trained words' first (cached, fetched once),
+    then explicit trigger fields in the file's metadata. Never the noisy caption tag counts."""
+    words = []
+    try:
+        sha = sha256_of(name)
+        info = cached_civitai(sha)
+        if info is None:
+            side = _sidecar_info(name)
+            if side:
+                info = _simplify(side, side.get("model") if isinstance(side.get("model"), dict) and "name" in side["model"] else None)
+        if allow_network and needs_fetch(info):
+            try:
+                info = fetch_civitai_sync(sha)
+                store_civitai(sha, info)
+            except Exception as e:
+                log.info("[SatoDive] Civitai lookup for trigger words failed (%s) - using file metadata", e)
+        if info and info.get("found"):
+            words = [w.strip() for w in info.get("trained_words") or [] if w and w.strip()]
+    except Exception as e:
+        log.info("[SatoDive] trigger word lookup failed for %s: %s", name, e)
+    if not words and metadata:
+        for k in EXPLICIT_TRIGGER_KEYS:
+            v = metadata.get(k)
+            if v:
+                words += [w.strip() for w in str(v).replace(";", ",").split(",") if w.strip()]
+    seen, out = set(), []
+    for w in words:
+        if w.lower() not in seen:
+            seen.add(w.lower())
+            out.append(w)
+    return out[:limit]
+
+
+def prompt_with_triggers(prompt, words):
+    """Prepend trigger words that are not already in the prompt. Returns (new_prompt, added_words)."""
+    low = (prompt or "").lower()
+    added = [w for w in words if w.lower() not in low]
+    if not added:
+        return prompt, []
+    return ", ".join(added) + (", " + prompt if prompt and prompt.strip() else ""), added

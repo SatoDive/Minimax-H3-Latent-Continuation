@@ -25,6 +25,10 @@ A ComfyUI node pack for inspecting, previewing and merging LoRAs. Preview every 
 | **② LoRA Slot** (add as many as you want) | One LoRA each, shown on a card: picture, rank, size, text-encoder part, applied weights and trigger words. **▶ Preview this LoRA** runs only this node. You can choose *Before / after* to see the base model next to the LoRA. **ⓘ Info** opens the Civitai dialog and **🔎 Browse** opens the gallery. |
 | **③ LoRA Merge Studio** | Method, mixer, per-block sliders, previews (*Merged*, *Compare every LoRA + merged*, *Before/after*), and **💾 Merge & Save LoRA**, which writes `models/loras/SatoDive/<name>_###.safetensors` and never overwrites. Its `merged_lora` output can feed another Merge Studio. |
 
+## Trigger words
+
+Some style LoRAs barely show unless their trigger words are in the prompt. With **add_trigger_words** on (the default, on every LoRA Slot and on the Merge Studio), the preview puts the LoRA's trigger words in front of the preview prompt. The words come from Civitai's "trained words" (looked up once, then cached) or from the trigger fields in the LoRA file. The card shows what was added ("✚ Preview prompt got: …"). It only changes the preview - the saved LoRA is not affected. Turn it off to preview without them.
+
 ## Wrong file? You get a clear message
 
 If a loader holds a file from another model family (for example a Z-Image UNET with the Krea2 architecture), you are told before anything runs:
